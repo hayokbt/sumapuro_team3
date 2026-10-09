@@ -1,0 +1,7 @@
+{
+  "name": "sumapuro-team3",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev"
+  }
+}
