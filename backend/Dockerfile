@@ -10,4 +10,6 @@ FROM alpine:3.22
 
 COPY --from=build /app/backend /usr/local/bin/backend
 
+EXPOSE 8080
+
 CMD ["backend"]

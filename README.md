@@ -23,10 +23,10 @@ docker compose up --build frontend
 ### バックエンド
 
 ```sh
-docker compose run --build --rm backend
+docker compose up --build backend
 ```
 
-現在のバックエンドは `Hello World` を出力して終了するサンプルです。実行後、コンテナは自動的に削除されます。
+起動後、GETリクエストで http://localhost:8080 にアクセスすると `Hello World!` を返します。ログは `docker compose logs backend` で確認できます。
 
 ## Docker Composeで起動
 
@@ -36,10 +36,14 @@ Docker Composeを使って、フロントエンドとバックエンドをビル
 docker compose up --build
 ```
 
-- フロントエンド: http://localhost:5173
+- フロントエンドのログイン画面: http://localhost:5173/login
+- アカウント作成: http://localhost:5173/account/create
+- アカウント復旧: http://localhost:5173/account/recovery
+- パスワード再設定: http://localhost:5173/account/reset
+- バックエンド: http://localhost:8080（GETで `Hello World!` を返します）
 - MySQL: `localhost:3305`（DB: `gomoku_db`、ユーザー: `gomoku_user`）
 
-フロントエンドはViteでビルドした静的ファイルをNginxで配信します。バックエンドはGoバイナリをビルドして実行します。現在のバックエンドは `Hello World` を出力して終了するサンプルのため、コンテナも実行後に終了します。ログは `docker compose logs backend` で確認できます。
+フロントエンドはViteでビルドした静的ファイルをNginxで配信します。バックエンドはGoバイナリをビルドしてHTTPサーバーを実行します。ログは `docker compose logs backend` で確認できます。
 
 停止するには次を実行してください。
 
