@@ -1,6 +1,15 @@
-version: '3.8'
-
 services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+
   db:
     image: mysql:8.0
     container_name: gomoku-db
