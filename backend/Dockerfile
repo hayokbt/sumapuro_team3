@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY go.mod ./
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/backend .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/backend ./cmd/server
 
 FROM alpine:3.22
 
