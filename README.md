@@ -28,7 +28,10 @@ docker compose up --build backend
 
 バックエンドの起動時にMySQLへ接続し、`users` と `user_scores` テーブルを作成します。起動後、GETリクエストで http://localhost:8080 にアクセスすると `This is go backend!!` を返します。ログは `docker compose logs backend` で確認できます。
 
-Dockerを使わずにバックエンドを実行する場合は、先にMySQLを起動してから次を実行してください。デフォルトでは `localhost:3305` のMySQLへ接続します。
+Dockerを使わずにバックエンドを実行する場合は、先にMySQLを起動してから次を実行してください。
+
+### データベース
+デフォルトでは `localhost:3305` のMySQLへ接続します。
 
 ```sh
 docker compose up -d db
@@ -42,6 +45,11 @@ MySQLへの接続とテーブル作成を確認するには、MySQLを起動し�
 go run ./test
 ```
 
+直接操作したい場合は、Dockerでdbを起動してから、ターミナルで次を実行してください。
+```docker compose exec db mysql -u gomoku_user -p gomoku_db
+```
+
+パスワードを聞かれたら、"gomoku_password"と打ってください。
 ## Docker Composeで起動
 
 Docker Composeを使って、フロントエンドとバックエンドをビルドし、MySQLと一緒に起動できます。
