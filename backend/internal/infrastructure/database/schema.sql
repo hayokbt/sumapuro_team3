@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users_username (username),
+    UNIQUE KEY uq_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS user_scores (
+    user_id BIGINT UNSIGNED NOT NULL,
+    wins INT UNSIGNED NOT NULL DEFAULT 0,
+    losses INT UNSIGNED NOT NULL DEFAULT 0,
+    draws INT UNSIGNED NOT NULL DEFAULT 0,
+    rating_score DECIMAL(10, 2) NOT NULL DEFAULT 1000.00,
+    PRIMARY KEY (user_id),
+    CONSTRAINT fk_user_scores_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
