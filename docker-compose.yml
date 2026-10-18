@@ -41,5 +41,12 @@ services:
       retries: 20
       start_period: 10s
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
 volumes:
   mysql_data:
