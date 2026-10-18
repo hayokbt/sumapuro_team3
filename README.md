@@ -7,8 +7,10 @@
 | フロントエンド | `frontend` | `sumapuro_team3-frontend-1` |
 | バックエンド | `backend` | `sumapuro_team3-backend-1` |
 | MySQL | `db` | `gomoku-db` |
+| Mailpit | `mailpit` | `sumapuro_team3-mailpit-1` |
 
-フロントエンドとバックエンドのコンテナ名は、Composeのプロジェクト名が `sumapuro_team3` の場合です。プロジェクト名を変更すると、コンテナ名の先頭部分も変わります。
+フロントエンドとバックエンドのコンテナ名は、Composeのプロジェクト名が `sumapuro_team3` の場合です。
+プロジェクト名を変更すると、コンテナ名の先頭部分も変わります。
 
 ## 個別に起動
 
@@ -50,9 +52,22 @@ go run ./test
 ```
 
 パスワードを聞かれたら、"gomoku_password"と打ってください。
+
+### Mailpit
+メールをローカルで確認するには、次のコマンドでMailpitを起動してください。
+
+```sh
+docker compose up -d mailpit
+```
+
+- Web UI: http://localhost:8025
+- SMTP: `localhost:1025`
+
+Composeネットワーク内のコンテナからSMTP接続する場合は、ホストに `mailpit`、ポートに `1025` を指定してください。
+
 ## Docker Composeで起動
 
-Docker Composeを使って、フロントエンドとバックエンドをビルドし、MySQLと一緒に起動できます。
+Docker Composeを使って、フロントエンドとバックエンドをビルドし、MySQLとMailpitと一緒に起動できます。
 
 ```sh
 docker compose up --build
@@ -64,6 +79,7 @@ docker compose up --build
 - パスワード再設定: http://localhost:5173/account/reset
 - バックエンド: http://localhost:8080（GETで `This is go backend!!` を返します）
 - MySQL: `localhost:3305`（DB: `gomoku_db`、ユーザー: `gomoku_user`）
+- Mailpit: http://localhost:8025（SMTP: `localhost:1025`）
 
 フロントエンドはViteでビルドした静的ファイルをNginxで配信します。バックエンドはGoバイナリをビルドし、MySQLの準備完了後にHTTPサーバーを実行します。ログは `docker compose logs backend` で確認できます。
 
