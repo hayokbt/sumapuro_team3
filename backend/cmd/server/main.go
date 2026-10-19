@@ -5,8 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
+	"time"
 
 	"gomoku-backend/internal/infrastructure/database"
+	"gomoku-backend/internal/infrastructure/email"
+	"gomoku-backend/internal/infrastructure/password"
+	"gomoku-backend/internal/interface/httpapi"
+	"gomoku-backend/internal/usecase/accountregistration"
 )
 
 func main() {
@@ -26,19 +33,37 @@ func run() error {
 		}
 	}()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.Header().Set("Allow", http.MethodGet)
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
+	mailer, err := email.NewSMTP(
+		envOrDefault("SMTP_HOST", "localhost"),
+		envOrDefault("SMTP_PORT", "1025"),
+		envOrDefault("SMTP_FROM", "no-reply@example.com"),
+	)
+	if err != nil {
+		return fmt.Errorf("configure SMTP: %w", err)
+	}
 
-		fmt.Fprint(w, "This is go backend!!")
-	})
+	registrationRepository := database.NewRegistrationRepository(db)
+	registration := accountregistration.NewAccountRegistration(
+		registrationRepository,
+		mailer,
+		password.NewPBKDF2(),
+	)
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           httpapi.NewHandler(registration),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	log.Println("Backend listening on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		return fmt.Errorf("start HTTP server: %w", err)
 	}
 	return nil
+}
+
+func envOrDefault(key, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		return value
+	}
+	return fallback
 }
