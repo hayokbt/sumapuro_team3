@@ -19,3 +19,17 @@ CREATE TABLE IF NOT EXISTS user_scores (
         FOREIGN KEY (user_id) REFERENCES users (id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS pending_registrations (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    verification_code_hash CHAR(64) NOT NULL,
+    verification_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    expires_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_pending_registrations_username (username),
+    UNIQUE KEY uq_pending_registrations_email (email),
+    KEY idx_pending_registrations_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

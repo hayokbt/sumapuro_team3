@@ -4,6 +4,11 @@ services:
       context: ./frontend
     ports:
       - "5173:80"
+    environment:
+      BACKEND_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_started
     restart: unless-stopped
 
   backend:
@@ -17,9 +22,14 @@ services:
       DB_USER: gomoku_user
       DB_PASSWORD: gomoku_password
       DB_NAME: gomoku_db
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: no-reply@example.com
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   db:
     image: mysql:8.0
