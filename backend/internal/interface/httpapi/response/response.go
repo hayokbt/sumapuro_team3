@@ -53,6 +53,11 @@ func WriteRegistrationError(w http.ResponseWriter, err error) {
 	}
 }
 
+func WriteAuthenticationError(w http.ResponseWriter, err error) {
+	log.Printf("account authentication request failed: %v", err)
+	WriteError(w, http.StatusInternalServerError, "ログインを処理できませんでした。時間をおいて再度お試しください。")
+}
+
 func WriteMethodNotAllowed(w http.ResponseWriter, allowedMethod string) {
 	w.Header().Set("Allow", allowedMethod)
 	WriteError(w, http.StatusMethodNotAllowed, "method not allowed")

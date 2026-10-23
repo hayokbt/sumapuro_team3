@@ -6,6 +6,8 @@ type LoginFormProps = {
   onAccountNameChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
+  isSubmitting: boolean
+  errorMessage: string
 }
 
 function LoginForm({
@@ -14,6 +16,8 @@ function LoginForm({
   onAccountNameChange,
   onPasswordChange,
   onSubmit,
+  isSubmitting,
+  errorMessage,
 }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit}>
@@ -26,6 +30,7 @@ function LoginForm({
           value={accountName}
           onChange={(event) => onAccountNameChange(event.target.value)}
           required
+          disabled={isSubmitting}
         />
       </label>
       <label>
@@ -37,9 +42,13 @@ function LoginForm({
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
           required
+          disabled={isSubmitting}
         />
       </label>
-      <button type="submit">ログイン</button>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'ログイン中...' : 'ログイン'}
+      </button>
+      {errorMessage && <p role="alert">{errorMessage}</p>}
       <p>
         <a href="/account/create">アカウントがない方</a>
       </p>

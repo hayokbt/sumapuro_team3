@@ -14,6 +14,7 @@ import (
 	"gomoku-backend/internal/infrastructure/password"
 	"gomoku-backend/internal/interface/httpapi"
 	"gomoku-backend/internal/usecase/accountregistration"
+	"gomoku-backend/internal/usecase/authentication"
 )
 
 func main() {
@@ -48,9 +49,13 @@ func run() error {
 		mailer,
 		password.NewPBKDF2(),
 	)
+	loginService := authentication.NewAuthentication(
+		database.NewAuthenticationRepository(db),
+		password.NewPBKDF2(),
+	)
 	server := &http.Server{
 		Addr:              ":8080",
-		Handler:           httpapi.NewHandler(registration),
+		Handler:           httpapi.NewHandler(registration, loginService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

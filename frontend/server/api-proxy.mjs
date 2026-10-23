@@ -3,6 +3,7 @@ const bodyLimit = 16 * 1024
 export const apiRoutes = new Map([
   ['/api/account/create', '/account/create'],
   ['/api/account/verify', '/account/verify'],
+  ['/api/login', '/login'],
 ])
 
 function sendJSON(response, status, payload) {
