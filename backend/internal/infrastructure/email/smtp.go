@@ -34,18 +34,26 @@ func NewSMTP(host, port, from string) (*SMTP, error) {
 }
 
 func (s *SMTP) SendVerificationCode(to, code string) error {
+	return s.sendCode(to, code, "アカウント確認コード", "確認", "アカウント登録の確認コード")
+}
+
+func (s *SMTP) SendAccountRecoveryCode(to, code string) error {
+	return s.sendCode(to, code, "アカウント復旧コード", "復旧確認", "アカウント復旧の確認コード")
+}
+
+func (s *SMTP) sendCode(to, code, subject, purpose, description string) error {
 	message := []byte(
 		"To: " + to + "\r\n" +
 			"From: " + s.from + "\r\n" +
-			"Subject: " + mime.QEncoding.Encode("UTF-8", "アカウント確認コード") + "\r\n" +
+			"Subject: " + mime.QEncoding.Encode("UTF-8", subject) + "\r\n" +
 			"MIME-Version: 1.0\r\n" +
 			"Content-Type: text/plain; charset=UTF-8\r\n" +
 			"\r\n" +
-			"アカウント登録の確認コードをお送りします。\r\n" +
+			description + "をお送りします。\r\n" +
 			"\r\n" +
 			"確認コード: " + code + "\r\n" +
 			"\r\n" +
-			"この確認コードの有効期限は10分です。\r\n",
+			"この" + purpose + "コードの有効期限は10分です。\r\n",
 	)
 	connection, err := net.DialTimeout("tcp", s.address, 5*time.Second)
 	if err != nil {

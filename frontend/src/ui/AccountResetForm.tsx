@@ -6,6 +6,10 @@ type AccountResetFormProps = {
   onAccountNameChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
+  isSubmitting: boolean
+  isCompleted: boolean
+  statusMessage: string
+  errorMessage: string
 }
 
 function AccountResetForm({
@@ -14,9 +18,15 @@ function AccountResetForm({
   onAccountNameChange,
   onPasswordChange,
   onSubmit,
+  isSubmitting,
+  isCompleted,
+  statusMessage,
+  errorMessage,
 }: AccountResetFormProps) {
   return (
     <form onSubmit={onSubmit}>
+      {statusMessage && <p role="status">{statusMessage}</p>}
+      {errorMessage && <p role="alert">{errorMessage}</p>}
       <label>
         アカウント名
         <input
@@ -26,6 +36,8 @@ function AccountResetForm({
           value={accountName}
           onChange={(event) => onAccountNameChange(event.target.value)}
           required
+          maxLength={50}
+          disabled={isSubmitting || isCompleted}
         />
       </label>
       <label>
@@ -37,9 +49,18 @@ function AccountResetForm({
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
           required
+          minLength={8}
+          maxLength={72}
+          disabled={isSubmitting || isCompleted}
         />
       </label>
-      <button type="submit">パスワード再設定</button>
+      {isCompleted
+        ? <a href="/login">ログイン画面へ</a>
+        : (
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? '更新中...' : 'アカウント情報を更新'}
+          </button>
+        )}
     </form>
   )
 }
