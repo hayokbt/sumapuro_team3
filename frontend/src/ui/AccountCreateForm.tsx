@@ -1,5 +1,3 @@
-import type { SubmitEvent } from 'react'
-
 type AccountCreateFormProps = {
   email: string
   accountName: string
@@ -9,8 +7,8 @@ type AccountCreateFormProps = {
   onAccountNameChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onVerificationCodeChange: (value: string) => void
-  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
-  onVerify: (event: SubmitEvent<HTMLFormElement>) => void
+  onSubmit: (event: React.SubmitEvent<HTMLFormElement>) => void
+  onVerify: (event: React.SubmitEvent<HTMLFormElement>) => void
   onResend: () => void
   verificationRequested: boolean
   accountCreated: boolean
@@ -40,7 +38,7 @@ function AccountCreateForm({
   errorMessage,
 }: AccountCreateFormProps) {
   return (
-    <>
+    <div className="form-container account-create-form">
       <form onSubmit={onSubmit}>
         <label>
           メールアドレス
@@ -116,7 +114,10 @@ function AccountCreateForm({
 
       {statusMessage && <p role="status">{statusMessage}</p>}
       {errorMessage && <p role="alert">{errorMessage}</p>}
-    </>
+      <button type="button" onClick={() => window.location.assign('/login')}>
+        戻る
+      </button>
+    </div>
   )
 }
 

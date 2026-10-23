@@ -12,20 +12,25 @@ function AccountRecoveryForm({
   onSubmit,
 }: AccountRecoveryFormProps) {
   return (
-    <form onSubmit={onSubmit}>
-      <label>
-        メールアドレス
-        <input
-          type="email"
-          name="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => onEmailChange(event.target.value)}
-          required
-        />
-      </label>
-      <button type="submit">アカウント復旧</button>
-    </form>
+    <div className="form-container account-recovery-form">
+      <form onSubmit={onSubmit}>
+        <label>
+          メールアドレス
+          <input
+            type="email"
+            name="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
+            required
+          />
+        </label>
+        <button type="submit">アカウント復旧</button>
+        <button type="button" onClick={() => window.location.assign('/login')}>
+          戻る
+        </button>
+      </form>
+    </div>
   )
 }
 
