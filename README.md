@@ -81,9 +81,15 @@ docker compose up --build
 - MySQL: `localhost:3305`（DB: `gomoku_db`、ユーザー: `gomoku_user`）
 - Mailpit: http://localhost:8025（SMTP: `localhost:1025`）
 
+ログインでは、ブラウザーからNode.jsのBFFへアカウント名とパスワードを送り、BFFがGoバックエンドの `POST /login` に中継します。GoバックエンドはMySQLに保存されたパスワードハッシュと照合し、成功時はフロントエンドが `/home` へ移動します。認証に失敗した場合は、日本語のエラーメッセージを表示します。
+
 アカウント作成では、ブラウザーからNode.jsのBFFへリクエストを送り、BFFがGoバックエンドの `POST /account/create` に中継します。Mailpitから届く6桁コードを入力すると、BFF経由の `POST /account/verify` で確認し、正しければアカウントを作成します。受信メールはMailpitのWeb UIで確認できます。
 
-フロントエンドのNode.jsサーバーはViteでビルドした静的ファイルを配信し、登録APIだけをバックエンドへ中継します。`frontend/server.mjs` が起動とリクエストの振り分け、`frontend/server/api-proxy.mjs` がAPI中継、`frontend/server/static-files.mjs` が静的ファイル配信を担当します。バックエンドはGoバイナリをビルドし、MySQLの準備完了後にHTTPサーバーを実行します。ログは `docker compose logs backend` で確認できます。
+アカウント復旧では、登録済みメールアドレスに届く6桁コードを入力して確認すると、Goバックエンドが一時的なリセットトークンを発行します。新しいアカウント名とパスワードを送ると、Goバックエンドがトークンを検証し、MySQLのアカウント情報を一度だけ更新します。
+
+復旧APIはBFFの `POST /api/account/recovery/request`、`POST /api/account/recovery/verify`、`POST /api/account/recovery/reset` からGoバックエンドへ中継されます。確認コードとリセットトークンは有効期限付きで、確認コードは入力回数を制限し、リセットトークンはDBにハッシュを保存して一度だけ利用します。
+
+フロントエンドのNode.jsサーバーはViteでビルドした静的ファイルを配信し、登録・ログイン・アカウント復旧APIをバックエンドへ中継します。`frontend/server.mjs` が起動とリクエストの振り分け、`frontend/server/api-proxy.mjs` がAPI中継、`frontend/server/static-files.mjs` が静的ファイル配信を担当します。バックエンドはGoバイナリをビルドし、MySQLの準備完了後にHTTPサーバーを実行します。ログは `docker compose logs backend` で確認できます。
 
 Dockerを使わず開発する場合は、MySQLとMailpitを起動したうえで、バックエンド、BFF、Viteをそれぞれ別のターミナルから起動します。BFF用にはフロントエンドを一度ビルドしてから、次を実行してください。
 
@@ -99,11 +105,11 @@ BACKEND_URL=http://localhost:8080 PORT=3000 npm run bff
 
 バックエンドは `backend/internal` の各パッケージに責務を分けています。
 
-| ディレクトリ | 責務 | 登録機能での例 |
+| ディレクトリ | 責務 | 機能での例 |
 |---|---|---|
-| `domain` | 登録ルール、確認コードの有効期限・試行回数、層をまたいで使うエラーとインターフェース | 登録入力の検証、確認コードの正誤判定 |
-| `usecase/accountregistration` | domainのルールと各インターフェースを組み合わせて登録処理を進行 | パスワードハッシュ化、確認コード発行、確認メール送信 |
-| `interface/httpapi` | `router.go`でルートとハンドラーを対応付け、`accountcreate`・`accountverify`で各API処理、`response`でJSON入出力とエラー応答を処理 | `POST /account/create`、`POST /account/verify` |
+| `domain` | 登録・復旧ルール、確認コードの有効期限・試行回数、層をまたいで使うエラーとインターフェース | 登録入力の検証、確認コードの正誤判定 |
+| `usecase/accountregistration`、`usecase/authentication`、`usecase/accountrecovery` | domainのルールと各インターフェースを組み合わせて登録・認証・復旧を進行 | パスワードハッシュ化・照合、確認コード発行、アカウント情報更新 |
+| `interface/httpapi` | `router.go`でルートとハンドラーを対応付け、`accountcreate`・`accountverify`・`login`・`accountrecovery`で各API処理、`response`でJSON入出力とエラー応答を処理 | `POST /account/create`、`POST /account/verify`、`POST /login`、`POST /account/recovery/*` |
 | `infrastructure` | インターフェースの具体的な実装と外部サービス接続 | MySQLリポジトリ、SMTP送信、PBKDF2 |
 
 `cmd/server` はこれらの実装を組み立ててサーバーを起動する場所です。ルートごとの処理や登録ルールは置かず、依存関係の配線に限定しています。

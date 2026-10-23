@@ -2,35 +2,76 @@ import type { SubmitEvent } from 'react'
 
 type AccountRecoveryFormProps = {
   email: string
+  verificationCode: string
+  codeRequested: boolean
+  isSubmitting: boolean
+  statusMessage: string
+  errorMessage: string
   onEmailChange: (value: string) => void
+  onCodeChange: (value: string) => void
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
+  onEditEmail: () => void
 }
 
 function AccountRecoveryForm({
   email,
+  verificationCode,
+  codeRequested,
+  isSubmitting,
+  statusMessage,
+  errorMessage,
   onEmailChange,
+  onCodeChange,
   onSubmit,
+  onEditEmail,
 }: AccountRecoveryFormProps) {
   return (
-    <div className="form-container account-recovery-form">
-      <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit}>
+      <label>
+        メールアドレス
+        <input
+          type="email"
+          name="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => onEmailChange(event.target.value)}
+          required
+          readOnly={codeRequested}
+          disabled={isSubmitting}
+        />
+      </label>
+      {codeRequested && (
         <label>
-          メールアドレス
+          確認コード
           <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
+            type="text"
+            name="code"
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            value={verificationCode}
+            onChange={(event) => onCodeChange(event.target.value)}
             required
+            disabled={isSubmitting}
           />
         </label>
-        <button type="submit">アカウント復旧</button>
-        <button type="button" onClick={() => window.location.assign('/login')}>
-          戻る
+      )}
+      {statusMessage && <p role="status">{statusMessage}</p>}
+      {errorMessage && <p role="alert">{errorMessage}</p>}
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting
+          ? '処理中...'
+          : codeRequested
+            ? '確認コードを確認'
+            : '確認コードを送信'}
+      </button>
+      {codeRequested && (
+        <button type="button" onClick={onEditEmail} disabled={isSubmitting}>
+          メールアドレスを変更
         </button>
-      </form>
-    </div>
+      )}
+    </form>
   )
 }
 
