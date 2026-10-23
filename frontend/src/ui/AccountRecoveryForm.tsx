@@ -2,7 +2,7 @@ import type { SubmitEvent } from 'react'
 
 type AccountRecoveryFormProps = {
   email: string
-  code: string
+  verificationCode: string
   codeRequested: boolean
   isSubmitting: boolean
   statusMessage: string
@@ -15,7 +15,7 @@ type AccountRecoveryFormProps = {
 
 function AccountRecoveryForm({
   email,
-  code,
+  verificationCode,
   codeRequested,
   isSubmitting,
   statusMessage,
@@ -50,7 +50,7 @@ function AccountRecoveryForm({
             inputMode="numeric"
             pattern="[0-9]{6}"
             maxLength={6}
-            value={code}
+            value={verificationCode}
             onChange={(event) => onCodeChange(event.target.value)}
             required
             disabled={isSubmitting}
