@@ -14,8 +14,9 @@ import (
 const maxRequestBodyBytes = 16 * 1024
 
 type JSON struct {
-	Message string `json:"message,omitempty"`
-	Error   string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Error      string `json:"error,omitempty"`
+	ResetToken string `json:"resetToken,omitempty"`
 }
 
 func DecodeJSON(w http.ResponseWriter, r *http.Request, destination any) error {
@@ -56,6 +57,29 @@ func WriteRegistrationError(w http.ResponseWriter, err error) {
 func WriteAuthenticationError(w http.ResponseWriter, err error) {
 	log.Printf("account authentication request failed: %v", err)
 	WriteError(w, http.StatusInternalServerError, "ログインを処理できませんでした。時間をおいて再度お試しください。")
+}
+
+func WriteAccountRecoveryError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrInvalidRegistration):
+		WriteError(w, http.StatusBadRequest, "メールアドレス、アカウント名、またはパスワードを確認してください。")
+	case errors.Is(err, domain.ErrAccountExists):
+		WriteError(w, http.StatusConflict, "そのアカウント名は既に使用されています。")
+	case errors.Is(err, domain.ErrInvalidCode):
+		WriteError(w, http.StatusBadRequest, "確認コードが正しくありません。")
+	case errors.Is(err, domain.ErrExpiredCode):
+		WriteError(w, http.StatusGone, "確認コードの有効期限が切れています。最初からやり直してください。")
+	case errors.Is(err, domain.ErrTooManyAttempts):
+		WriteError(w, http.StatusTooManyRequests, "確認コードの入力回数上限に達しました。最初からやり直してください。")
+	case errors.Is(err, domain.ErrInvalidRecoveryToken):
+		WriteError(w, http.StatusGone, "復旧手続きの有効期限が切れています。最初からやり直してください。")
+	case errors.Is(err, domain.ErrEmailDelivery):
+		log.Printf("send account recovery email: %v", err)
+		WriteError(w, http.StatusBadGateway, "確認メールを送信できませんでした。時間をおいて再度お試しください。")
+	default:
+		log.Printf("account recovery request failed: %v", err)
+		WriteError(w, http.StatusInternalServerError, "アカウント復旧を処理できませんでした。時間をおいて再度お試しください。")
+	}
 }
 
 func WriteMethodNotAllowed(w http.ResponseWriter, allowedMethod string) {

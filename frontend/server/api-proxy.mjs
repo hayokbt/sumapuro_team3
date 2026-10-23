@@ -3,6 +3,9 @@ const bodyLimit = 16 * 1024
 export const apiRoutes = new Map([
   ['/api/account/create', '/account/create'],
   ['/api/account/verify', '/account/verify'],
+  ['/api/account/recovery/request', '/account/recovery/request'],
+  ['/api/account/recovery/verify', '/account/recovery/verify'],
+  ['/api/account/recovery/reset', '/account/recovery/reset'],
   ['/api/login', '/login'],
 ])
 
@@ -44,9 +47,14 @@ export async function proxyAPI(request, response, backendPath, backendURL) {
       body: Buffer.concat(chunks),
       signal: AbortSignal.timeout(30_000),
     })
-    response.writeHead(backendResponse.status, {
+    const responseHeaders = {
       'content-type': backendResponse.headers.get('content-type') ?? 'application/json',
-    })
+    }
+    const cacheControl = backendResponse.headers.get('cache-control')
+    if (cacheControl) {
+      responseHeaders['cache-control'] = cacheControl
+    }
+    response.writeHead(backendResponse.status, responseHeaders)
     response.end(Buffer.from(await backendResponse.arrayBuffer()))
   } catch (error) {
     console.error('Backend request failed:', error)

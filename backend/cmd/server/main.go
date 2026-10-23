@@ -13,6 +13,7 @@ import (
 	"gomoku-backend/internal/infrastructure/email"
 	"gomoku-backend/internal/infrastructure/password"
 	"gomoku-backend/internal/interface/httpapi"
+	"gomoku-backend/internal/usecase/accountrecovery"
 	"gomoku-backend/internal/usecase/accountregistration"
 	"gomoku-backend/internal/usecase/authentication"
 )
@@ -53,9 +54,14 @@ func run() error {
 		database.NewAuthenticationRepository(db),
 		password.NewPBKDF2(),
 	)
+	recoveryService := accountrecovery.NewAccountRecovery(
+		database.NewAccountRecoveryRepository(db),
+		mailer,
+		password.NewPBKDF2(),
+	)
 	server := &http.Server{
 		Addr:              ":8080",
-		Handler:           httpapi.NewHandler(registration, loginService),
+		Handler:           httpapi.NewHandler(registration, loginService, recoveryService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
