@@ -48,7 +48,7 @@ function AccountRecoveryController() {
   return (
     <AccountRecoveryForm
       email={email}
-      code={code}
+      verificationCode={code}
       codeRequested={codeRequested}
       isSubmitting={isSubmitting}
       statusMessage={statusMessage}

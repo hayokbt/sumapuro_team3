@@ -63,7 +63,7 @@ function AccountResetController() {
       onAccountNameChange={setAccountName}
       onPasswordChange={setPassword}
       onSubmit={handleSubmit}
-      isSubmitting={isSubmitting}
+      isSaving={isSubmitting}
       isCompleted={isCompleted}
       statusMessage={statusMessage}
       errorMessage={errorMessage}

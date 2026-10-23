@@ -6,7 +6,7 @@ type AccountResetFormProps = {
   onAccountNameChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
-  isSubmitting: boolean
+  isSaving: boolean
   isCompleted: boolean
   statusMessage: string
   errorMessage: string
@@ -18,7 +18,7 @@ function AccountResetForm({
   onAccountNameChange,
   onPasswordChange,
   onSubmit,
-  isSubmitting,
+  isSaving,
   isCompleted,
   statusMessage,
   errorMessage,
@@ -37,7 +37,7 @@ function AccountResetForm({
           onChange={(event) => onAccountNameChange(event.target.value)}
           required
           maxLength={50}
-          disabled={isSubmitting || isCompleted}
+          disabled={isSaving || isCompleted}
         />
       </label>
       <label>
@@ -51,14 +51,14 @@ function AccountResetForm({
           required
           minLength={8}
           maxLength={72}
-          disabled={isSubmitting || isCompleted}
+          disabled={isSaving || isCompleted}
         />
       </label>
       {isCompleted
         ? <a href="/login">ログイン画面へ</a>
         : (
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '更新中...' : 'アカウント情報を更新'}
+          <button type="submit" disabled={isSaving}>
+            {isSaving ? '更新中...' : 'アカウント情報を更新'}
           </button>
         )}
     </form>
