@@ -45,6 +45,7 @@ function AccountResetController() {
       }
       setIsCompleted(true)
       setStatusMessage(message)
+      window.location.replace('/login')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'アカウント情報を更新できませんでした。')
     } finally {
