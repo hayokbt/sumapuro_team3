@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/interface/httpapi/auth"
 	"gomoku-backend/internal/interface/httpapi/response"
 	"gomoku-backend/internal/usecase/authentication"
 )
@@ -16,10 +17,11 @@ type request struct {
 
 type handler struct {
 	authentication authentication.Service
+	sessions       *auth.Manager
 }
 
-func NewHandler(authentication authentication.Service) http.HandlerFunc {
-	return (&handler{authentication: authentication}).handle
+func NewHandler(authentication authentication.Service, sessions *auth.Manager) http.HandlerFunc {
+	return (&handler{authentication: authentication, sessions: sessions}).handle
 }
 
 func (h *handler) handle(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +35,8 @@ func (h *handler) handle(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, http.StatusBadRequest, "リクエストの形式が正しくありません。")
 		return
 	}
-	if err := h.authentication.Authenticate(r.Context(), input.AccountName, input.Password); err != nil {
+	user, err := h.authentication.Authenticate(r.Context(), input.AccountName, input.Password)
+	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			response.WriteError(w, http.StatusUnauthorized, "アカウント名またはパスワードが正しくありません。")
 			return
@@ -41,5 +44,12 @@ func (h *handler) handle(w http.ResponseWriter, r *http.Request) {
 		response.WriteAuthenticationError(w, err)
 		return
 	}
+	token, err := h.sessions.Sessions.Start(r.Context(), user)
+	if err != nil {
+		response.WriteAuthenticationError(w, err)
+		return
+	}
+	h.sessions.Set(w, token)
+	w.Header().Set("Cache-Control", "no-store")
 	response.WriteJSON(w, http.StatusOK, response.JSON{Message: "ログインしました。"})
 }

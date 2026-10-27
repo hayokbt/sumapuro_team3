@@ -12,11 +12,17 @@ services:
     restart: unless-stopped
 
   backend:
+    volumes:
+      - auth_data:/var/lib/gomoku/auth
     build:
       context: ./backend
     ports:
       - "8080:8080"
     environment:
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_SECRET_FILE: /var/lib/gomoku/auth/jwt-secret
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      APP_ORIGINS: ${APP_ORIGINS:-http://localhost:5173,http://localhost:3000}
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: gomoku_user
@@ -60,3 +66,4 @@ services:
 
 volumes:
   mysql_data:
+  auth_data:

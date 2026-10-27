@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    auth_version BIGINT NOT NULL DEFAULT 1,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(254) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -47,3 +48,12 @@ CREATE TABLE IF NOT EXISTS account_recoveries (
         ON DELETE CASCADE,
     KEY idx_account_recoveries_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+ id CHAR(64) NOT NULL PRIMARY KEY,
+ user_id BIGINT UNSIGNED NOT NULL,
+ expires_at DATETIME NOT NULL,
+ revoked_at DATETIME NULL,
+ KEY idx_auth_sessions_expiry (expires_at),
+ CONSTRAINT fk_auth_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

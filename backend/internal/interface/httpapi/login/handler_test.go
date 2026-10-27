@@ -10,14 +10,15 @@ import (
 	"testing"
 
 	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/interface/httpapi/auth"
 )
 
 type authenticationStub struct {
 	err error
 }
 
-func (a authenticationStub) Authenticate(context.Context, string, string) error {
-	return a.err
+func (a authenticationStub) Authenticate(context.Context, string, string) (domain.AuthenticatedUser, error) {
+	return domain.AuthenticatedUser{ID: 1, Version: 1}, a.err
 }
 
 func TestLoginHandler(t *testing.T) {
@@ -73,7 +74,7 @@ func TestLoginHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/login", strings.NewReader(test.body))
 			recorder := httptest.NewRecorder()
-			NewHandler(test.authentication).ServeHTTP(recorder, request)
+			NewHandler(test.authentication, &auth.Manager{Sessions: sessionStub{}}).ServeHTTP(recorder, request)
 
 			if recorder.Code != test.wantStatus {
 				t.Fatalf("status = %d, want %d", recorder.Code, test.wantStatus)
@@ -94,3 +95,13 @@ func TestLoginHandler(t *testing.T) {
 		})
 	}
 }
+
+type sessionStub struct{}
+
+func (sessionStub) Start(context.Context, domain.AuthenticatedUser) (string, error) {
+	return "jwt", nil
+}
+func (sessionStub) Verify(context.Context, string) (domain.AuthSession, error) {
+	return domain.AuthSession{}, nil
+}
+func (sessionStub) Logout(context.Context, string) error { return nil }

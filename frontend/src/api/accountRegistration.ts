@@ -19,7 +19,7 @@ function isAPIResponse(value: unknown): value is APIResponse {
 async function postRegistrationRequest(path: string, body: unknown): Promise<string> {
   const response = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'gomoku-web' },
     body: JSON.stringify(body),
   })
 
