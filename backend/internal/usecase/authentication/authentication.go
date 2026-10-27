@@ -26,26 +26,26 @@ func NewAuthentication(repository domain.AuthenticationRepository, verifier Pass
 	}
 }
 
-func (a *Authentication) Authenticate(ctx context.Context, accountName, password string) error {
+func (a *Authentication) Authenticate(ctx context.Context, accountName, password string) (domain.AuthenticatedUser, error) {
 	accountName = strings.TrimSpace(accountName)
 	if accountName == "" || password == "" {
-		return domain.ErrInvalidCredentials
+		return domain.AuthenticatedUser{}, domain.ErrInvalidCredentials
 	}
 
-	passwordHash, err := a.repository.PasswordHashByAccountName(ctx, accountName)
+	user, err := a.repository.PasswordHashByAccountName(ctx, accountName)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.ErrInvalidCredentials
+		return domain.AuthenticatedUser{}, domain.ErrInvalidCredentials
 	}
 	if err != nil {
-		return fmt.Errorf("find account for authentication: %w", err)
+		return domain.AuthenticatedUser{}, fmt.Errorf("find account for authentication: %w", err)
 	}
 
-	matches, err := a.verifier.Verify(password, passwordHash)
+	matches, err := a.verifier.Verify(password, user.PasswordHash)
 	if err != nil {
-		return fmt.Errorf("verify account password: %w", err)
+		return domain.AuthenticatedUser{}, fmt.Errorf("verify account password: %w", err)
 	}
 	if !matches {
-		return domain.ErrInvalidCredentials
+		return domain.AuthenticatedUser{}, domain.ErrInvalidCredentials
 	}
-	return nil
+	return user, nil
 }

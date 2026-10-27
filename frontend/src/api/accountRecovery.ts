@@ -31,7 +31,7 @@ async function postRecoveryRequest(path: string, body: unknown): Promise<APIResp
   try {
     response = await fetch(path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'gomoku-web' },
       body: JSON.stringify(body),
     })
   } catch {

@@ -15,9 +15,9 @@ type repositoryStub struct {
 	accountName  string
 }
 
-func (r *repositoryStub) PasswordHashByAccountName(_ context.Context, accountName string) (string, error) {
+func (r *repositoryStub) PasswordHashByAccountName(_ context.Context, accountName string) (domain.AuthenticatedUser, error) {
 	r.accountName = accountName
-	return r.passwordHash, r.err
+	return domain.AuthenticatedUser{ID: 1, Version: 1, PasswordHash: r.passwordHash}, r.err
 }
 
 type verifierStub struct {
@@ -103,7 +103,7 @@ func TestAuthenticate(t *testing.T) {
 			verifier := &verifierStub{matches: test.matches, err: test.verifierError}
 			service := NewAuthentication(repository, verifier)
 
-			err := service.Authenticate(context.Background(), test.accountName, test.password)
+			_, err := service.Authenticate(context.Background(), test.accountName, test.password)
 			if test.wantError == nil {
 				if err != nil {
 					t.Fatalf("Authenticate() error = %v, want nil", err)

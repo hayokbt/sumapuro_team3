@@ -7,6 +7,8 @@ export const apiRoutes = new Map([
   ['/api/account/recovery/verify', '/account/recovery/verify'],
   ['/api/account/recovery/reset', '/account/recovery/reset'],
   ['/api/login', '/login'],
+  ['/api/auth/me', '/auth/me'],
+  ['/api/logout', '/logout'],
 ])
 
 function sendJSON(response, status, payload) {
@@ -15,8 +17,9 @@ function sendJSON(response, status, payload) {
 }
 
 export async function proxyAPI(request, response, backendPath, backendURL) {
-  if (request.method !== 'POST') {
-    response.setHeader('allow', 'POST')
+  const allowedMethod = backendPath === '/auth/me' ? 'GET' : 'POST'
+  if (request.method !== allowedMethod) {
+    response.setHeader('allow', allowedMethod)
     sendJSON(response, 405, { error: 'method not allowed' })
     return
   }
@@ -42,9 +45,14 @@ export async function proxyAPI(request, response, backendPath, backendURL) {
 
   try {
     const backendResponse = await fetch(new URL(backendPath, backendURL), {
-      method: 'POST',
-      headers: { 'content-type': request.headers['content-type'] ?? 'application/json' },
-      body: Buffer.concat(chunks),
+      method: request.method,
+      headers: {
+        'content-type': request.headers['content-type'] ?? 'application/json',
+        ...(request.headers.cookie ? { cookie: request.headers.cookie } : {}),
+        ...(request.headers.origin ? { origin: request.headers.origin } : {}),
+        ...(request.headers['x-requested-with'] ? { 'x-requested-with': request.headers['x-requested-with'] } : {}),
+      },
+      body: request.method === 'GET' ? undefined : Buffer.concat(chunks),
       signal: AbortSignal.timeout(30_000),
     })
     const responseHeaders = {
@@ -54,6 +62,8 @@ export async function proxyAPI(request, response, backendPath, backendURL) {
     if (cacheControl) {
       responseHeaders['cache-control'] = cacheControl
     }
+    const cookies = backendResponse.headers.getSetCookie()
+    if (cookies.length) responseHeaders['set-cookie'] = cookies
     response.writeHead(backendResponse.status, responseHeaders)
     response.end(Buffer.from(await backendResponse.arrayBuffer()))
   } catch (error) {

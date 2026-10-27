@@ -119,3 +119,65 @@ BACKEND_URL=http://localhost:8080 PORT=3000 npm run bff
 ```sh
 docker compose down
 ```
+
+## JWTによるログイン状態管理
+
+Goが署名付きJWTを発行し、`gomoku_auth` HttpOnly Cookieに保存します。
+JWTは30分で期限切れとなり、期限切れ後は再ログインが必要です。
+JWTにはユーザーID・セッションID・認証バージョン・発行者・利用先・期限を含め、
+APIでは署名検証に加えてMySQLのセッション状態と認証バージョンを確認します。
+
+Docker Composeでは、次のコマンドだけで起動できます。
+
+```sh
+docker compose up --build
+```
+
+`JWT_SECRET`が未設定の場合、バックエンドはランダムな署名鍵を自動生成し、
+専用の`auth_data`ボリューム内に権限0600で保存します。
+コンテナを再作成しても同じ鍵を利用します。ボリュームを削除すると鍵が変わり、
+既存のJWTは利用できなくなります。
+
+自分で鍵を管理する場合は、32バイト以上の`JWT_SECRET`を指定してください。
+環境変数の鍵は保存ファイルより優先します。
+
+```sh
+export JWT_SECRET="$(openssl rand -hex 32)"
+```
+
+DockerなしでGoを起動する場合は、`JWT_SECRET`を設定するか、
+`JWT_SECRET_FILE=/保存先/jwt-secret`を指定して自動生成・保存します。
+再起動後もログインを維持するには同じ鍵を使ってください。
+短すぎる鍵や読み取れない鍵ファイルでは起動エラーになります。
+DB・Mailpitのみの起動には鍵の設定は不要です。
+
+- `COOKIE_SECURE`：ローカルHTTPでは`false`、HTTPS環境では`true`を指定。
+- `APP_ORIGINS`：ブラウザーの許可元をカンマ区切りで指定。既定値は`http://localhost:5173,http://localhost:3000`。
+- CookieはHttpOnly・SameSite=Lax・Path=/。ブラウザーの更新リクエストは許可Originと`X-Requested-With: gomoku-web`ヘッダーで検証します。Originがない非ブラウザークライアントでも確認ヘッダーが必要です。BFFはOriginを改変せず中継します。
+- `GET /api/auth/me`：認証済みならユーザーID、未認証なら401。
+- `POST /api/logout`：現在のセッションをDBで失効し、Cookieを削除。
+- アカウント復旧：アカウント更新・復旧トークン消費・認証バージョン加算を同じトランザクションで実施。全端末の旧JWTを次の認証チェックから拒否。
+- `/home`：homeの下にログイン／ログアウト状態を表示。フォーカス復帰時と30秒ごとに状態を再確認します。画面自体は未認証でも表示でき、保護するAPIには`middleware.Authentication`を適用します。
+
+既存DBにはバックエンド起動時に`users.auth_version`を追加し、`auth_sessions`を作成します。
+既存データは保持します。期限切れ・失効済みのセッションレコードは自動削除しないため、長期運用では定期削除を設定してください。
+
+### 認証のテスト
+
+```sh
+cd backend
+go test ./...
+# localhost:3305のMySQLとlocalhost:1025/8025のMailpitを利用
+AUTH_INTEGRATION=1 go test ./internal/interface/httpapi -run TestAuthenticationIntegration -v
+```
+
+結合テストは専用の一時ユーザーでログイン、現在端末のログアウト、メールによる復旧、
+全端末失効、再ログイン、復旧トークンの再利用拒否、CSRF拒否を確認します。
+テストユーザーと取得したテストメールは終了時に削除します。
+
+```sh
+cd frontend
+npm run build
+npm run lint
+node --test server/api-proxy.test.mjs
+```

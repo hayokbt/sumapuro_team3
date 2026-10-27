@@ -194,7 +194,7 @@ func (r *AccountRecoveryRepository) CompleteRecovery(
 	}
 
 	if _, err := tx.ExecContext(ctx,
-		"UPDATE users SET username = ?, password_hash = ? WHERE id = ?",
+		"UPDATE users SET username = ?, password_hash = ?, auth_version = auth_version + 1 WHERE id = ?",
 		accountName, passwordHash, userID,
 	); err != nil {
 		if isDuplicateKey(err) {

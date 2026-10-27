@@ -12,10 +12,13 @@ import (
 	"gomoku-backend/internal/infrastructure/database"
 	"gomoku-backend/internal/infrastructure/email"
 	"gomoku-backend/internal/infrastructure/password"
+	"gomoku-backend/internal/infrastructure/token"
 	"gomoku-backend/internal/interface/httpapi"
+	"gomoku-backend/internal/interface/httpapi/auth"
 	"gomoku-backend/internal/usecase/accountrecovery"
 	"gomoku-backend/internal/usecase/accountregistration"
 	"gomoku-backend/internal/usecase/authentication"
+	"gomoku-backend/internal/usecase/authsession"
 )
 
 func main() {
@@ -59,9 +62,19 @@ func run() error {
 		mailer,
 		password.NewPBKDF2(),
 	)
+	secret, err := loadJWTSecret()
+	if err != nil {
+		return err
+	}
+	jwtToken, err := token.NewJWT(secret)
+	if err != nil {
+		return err
+	}
+	sessions := &auth.Manager{Sessions: authsession.New(database.NewAuthSessionRepository(db), jwtToken), Secure: os.Getenv("COOKIE_SECURE") == "true"}
+	origins := strings.Split(envOrDefault("APP_ORIGINS", "http://localhost:5173,http://localhost:3000"), ",")
 	server := &http.Server{
 		Addr:              ":8080",
-		Handler:           httpapi.NewHandler(registration, loginService, recoveryService),
+		Handler:           httpapi.NewHandler(registration, loginService, recoveryService, sessions, origins),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -20,7 +20,7 @@ export async function requestLogin(data: LoginData): Promise<string> {
   try {
     response = await fetch('/api/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'gomoku-web' },
       body: JSON.stringify(data),
     })
   } catch {
