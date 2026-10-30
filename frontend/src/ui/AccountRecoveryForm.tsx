@@ -26,8 +26,8 @@ function AccountRecoveryForm({
   onEditEmail,
 }: AccountRecoveryFormProps) {
   return (
-    <main className="account-recovery-page">
-      <form className="form-container account-recovery-form" onSubmit={onSubmit}>
+    <main className="account-flow-page">
+      <form className="form-container account-flow-form" onSubmit={onSubmit}>
         <label>
           メールアドレス
           <input
@@ -68,7 +68,7 @@ function AccountRecoveryForm({
               : 'アカウント復旧'}
         </button>
         {codeRequested && (
-          <button type="button" onClick={onEditEmail} disabled={isSubmitting}>
+          <button className="account-flow-secondary" type="button" onClick={onEditEmail} disabled={isSubmitting}>
             メールアドレスを変更
           </button>
         )}
