@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type AccountRecoveryRepository struct {
@@ -33,7 +33,7 @@ func (r *AccountRecoveryRepository) SaveRecoveryCode(
 	var userID int64
 	if err := tx.QueryRowContext(ctx, "SELECT id FROM users WHERE email = ?", email).Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrAccountNotFound
+			return account.ErrAccountNotFound
 		}
 		return fmt.Errorf("find account for recovery: %w", err)
 	}
@@ -90,19 +90,19 @@ func (r *AccountRecoveryRepository) IssueResetToken(
 		email,
 	).Scan(&userID, &storedCodeHash, &attempts, &expiresAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.ErrExpiredCode
+		return account.ErrExpiredCode
 	}
 	if err != nil {
 		return fmt.Errorf("load account recovery request: %w", err)
 	}
 
-	pending := domain.PendingRegistration{
+	pending := account.PendingRegistration{
 		VerificationCodeHash: storedCodeHash,
 		VerificationAttempts: attempts,
 		ExpiresAt:            expiresAt,
 	}
 	if err := pending.Verify(code, now); err != nil {
-		if errors.Is(err, domain.ErrExpiredCode) || errors.Is(err, domain.ErrTooManyAttempts) {
+		if errors.Is(err, account.ErrExpiredCode) || errors.Is(err, account.ErrTooManyAttempts) {
 			if _, deleteErr := tx.ExecContext(ctx, "DELETE FROM account_recoveries WHERE user_id = ?", userID); deleteErr != nil {
 				return fmt.Errorf("remove expired account recovery: %w", deleteErr)
 			}
@@ -121,7 +121,7 @@ func (r *AccountRecoveryRepository) IssueResetToken(
 		`UPDATE account_recoveries
 		 SET reset_token_hash = ?, reset_expires_at = ?
 		 WHERE user_id = ?`,
-		tokenHash, now.Add(domain.VerificationCodeLifetime), userID,
+		tokenHash, now.Add(account.VerificationCodeLifetime), userID,
 	); err != nil {
 		return fmt.Errorf("save account recovery token: %w", err)
 	}
@@ -146,7 +146,7 @@ func (r *AccountRecoveryRepository) ValidateResetToken(
 		email,
 	).Scan(&storedTokenHash, &tokenExpiresAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.ErrInvalidRecoveryToken
+		return account.ErrInvalidRecoveryToken
 	}
 	if err != nil {
 		return fmt.Errorf("load account recovery token: %w", err)
@@ -154,7 +154,7 @@ func (r *AccountRecoveryRepository) ValidateResetToken(
 	if !storedTokenHash.Valid || !tokenExpiresAt.Valid ||
 		subtle.ConstantTimeCompare([]byte(storedTokenHash.String), []byte(tokenHash)) != 1 ||
 		!now.Before(tokenExpiresAt.Time) {
-		return domain.ErrInvalidRecoveryToken
+		return account.ErrInvalidRecoveryToken
 	}
 	return nil
 }
@@ -183,14 +183,14 @@ func (r *AccountRecoveryRepository) CompleteRecovery(
 	).Scan(&userID, &storedTokenHash, &tokenExpiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrInvalidRecoveryToken
+			return account.ErrInvalidRecoveryToken
 		}
 		return fmt.Errorf("load account recovery token: %w", err)
 	}
 	if !storedTokenHash.Valid || !tokenExpiresAt.Valid ||
 		subtle.ConstantTimeCompare([]byte(storedTokenHash.String), []byte(tokenHash)) != 1 ||
 		!now.Before(tokenExpiresAt.Time) {
-		return domain.ErrInvalidRecoveryToken
+		return account.ErrInvalidRecoveryToken
 	}
 
 	if _, err := tx.ExecContext(ctx,
@@ -198,7 +198,7 @@ func (r *AccountRecoveryRepository) CompleteRecovery(
 		accountName, passwordHash, userID,
 	); err != nil {
 		if isDuplicateKey(err) {
-			return domain.ErrAccountExists
+			return account.ErrAccountExists
 		}
 		return fmt.Errorf("update recovered account: %w", err)
 	}

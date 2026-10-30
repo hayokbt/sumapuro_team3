@@ -1,16 +1,15 @@
-package accountcreate
+package accountverify
 
 import (
 	"net/http"
 
 	"gomoku-backend/internal/interface/httpapi/response"
-	"gomoku-backend/internal/usecase/accountregistration"
+	"gomoku-backend/internal/usecase/account/accountregistration"
 )
 
 type request struct {
-	Email       string `json:"email"`
-	AccountName string `json:"accountName"`
-	Password    string `json:"password"`
+	Email string `json:"email"`
+	Code  string `json:"code"`
 }
 
 type handler struct {
@@ -32,9 +31,9 @@ func (h *handler) handle(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, http.StatusBadRequest, "リクエストの形式が正しくありません。")
 		return
 	}
-	if err := h.registration.Start(r.Context(), input.Email, input.AccountName, input.Password); err != nil {
+	if err := h.registration.Verify(r.Context(), input.Email, input.Code); err != nil {
 		response.WriteRegistrationError(w, err)
 		return
 	}
-	response.WriteJSON(w, http.StatusAccepted, response.JSON{Message: "確認コードをメールで送信しました。"})
+	response.WriteJSON(w, http.StatusCreated, response.JSON{Message: "アカウントを作成しました。"})
 }

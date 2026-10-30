@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 )
@@ -20,7 +20,7 @@ func NewRegistrationRepository(db *sql.DB) *RegistrationRepository {
 	return &RegistrationRepository{db: db}
 }
 
-func (r *RegistrationRepository) SavePending(ctx context.Context, pending domain.PendingRegistration) (int64, error) {
+func (r *RegistrationRepository) SavePending(ctx context.Context, pending account.PendingRegistration) (int64, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("begin pending registration transaction: %w", err)
@@ -35,7 +35,7 @@ func (r *RegistrationRepository) SavePending(ctx context.Context, pending domain
 		return 0, fmt.Errorf("check existing account: %w", err)
 	}
 	if exists {
-		return 0, domain.ErrAccountExists
+		return 0, account.ErrAccountExists
 	}
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM pending_registrations WHERE expires_at <= ?", time.Now()); err != nil {
@@ -53,7 +53,7 @@ func (r *RegistrationRepository) SavePending(ctx context.Context, pending domain
 	)
 	if err != nil {
 		if isDuplicateKey(err) {
-			return 0, domain.ErrAccountExists
+			return 0, account.ErrAccountExists
 		}
 		return 0, fmt.Errorf("save pending registration: %w", err)
 	}
@@ -83,13 +83,13 @@ func (r *RegistrationRepository) CompleteVerification(ctx context.Context, email
 
 	pending, err := loadPendingRegistration(ctx, tx, email)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.ErrExpiredCode
+		return account.ErrExpiredCode
 	}
 	if err != nil {
 		return err
 	}
 	if err := pending.Verify(code, now); err != nil {
-		if errors.Is(err, domain.ErrExpiredCode) || errors.Is(err, domain.ErrTooManyAttempts) {
+		if errors.Is(err, account.ErrExpiredCode) || errors.Is(err, account.ErrTooManyAttempts) {
 			if _, deleteErr := tx.ExecContext(ctx, "DELETE FROM pending_registrations WHERE id = ?", pending.ID); deleteErr != nil {
 				return fmt.Errorf("remove invalid pending registration: %w", deleteErr)
 			}
@@ -111,7 +111,7 @@ func (r *RegistrationRepository) CompleteVerification(ctx context.Context, email
 	)
 	if err != nil {
 		if isDuplicateKey(err) {
-			return domain.ErrAccountExists
+			return account.ErrAccountExists
 		}
 		return fmt.Errorf("create account: %w", err)
 	}
@@ -135,8 +135,8 @@ type queryRower interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-func loadPendingRegistration(ctx context.Context, queryer queryRower, email string) (domain.PendingRegistration, error) {
-	var pending domain.PendingRegistration
+func loadPendingRegistration(ctx context.Context, queryer queryRower, email string) (account.PendingRegistration, error) {
+	var pending account.PendingRegistration
 	err := queryer.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, verification_code_hash, verification_attempts, expires_at
 		 FROM pending_registrations WHERE email = ? FOR UPDATE`,
@@ -146,7 +146,7 @@ func loadPendingRegistration(ctx context.Context, queryer queryRower, email stri
 		&pending.VerificationCodeHash, &pending.VerificationAttempts, &pending.ExpiresAt,
 	)
 	if err != nil {
-		return domain.PendingRegistration{}, fmt.Errorf("load pending registration: %w", err)
+		return account.PendingRegistration{}, fmt.Errorf("load pending registration: %w", err)
 	}
 	return pending, nil
 }

@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"gomoku-backend/internal/domain"
-	"gomoku-backend/internal/usecase/authsession"
+	"gomoku-backend/internal/domain/account"
+	"gomoku-backend/internal/usecase/account/authsession"
 )
 
 const CookieName = "gomoku_auth"
 
 type Sessions interface {
-	Start(context.Context, domain.AuthenticatedUser) (string, error)
-	Verify(context.Context, string) (domain.AuthSession, error)
+	Start(context.Context, account.AuthenticatedUser) (string, error)
+	Verify(context.Context, string) (account.AuthSession, error)
 	Logout(context.Context, string) error
 }
 type Manager struct {
@@ -46,7 +46,7 @@ func (m *Manager) Current(w http.ResponseWriter, r *http.Request) {
 	s, err := m.Sessions.Verify(r.Context(), Raw(r))
 	if err != nil {
 		status := 500
-		if errors.Is(err, domain.ErrUnauthenticated) {
+		if errors.Is(err, account.ErrUnauthenticated) {
 			status = 401
 			m.Clear(w)
 		}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type JWT struct{ key []byte }
@@ -23,18 +23,18 @@ func NewJWT(key string) (*JWT, error) {
 	}
 	return &JWT{[]byte(key)}, nil
 }
-func (j *JWT) Issue(s domain.AuthSession) (string, error) {
+func (j *JWT) Issue(s account.AuthSession) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims{s.ID, s.Version, jwt.RegisteredClaims{Subject: strconv.FormatInt(s.UserID, 10), Issuer: "gomoku-backend", Audience: jwt.ClaimStrings{"gomoku-web"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(s.ExpiresAt)}}).SignedString(j.key)
 }
-func (j *JWT) Verify(raw string) (domain.AuthSession, error) {
+func (j *JWT) Verify(raw string) (account.AuthSession, error) {
 	c := &claims{}
 	_, err := jwt.ParseWithClaims(raw, c, func(*jwt.Token) (any, error) { return j.key, nil }, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired(), jwt.WithIssuer("gomoku-backend"), jwt.WithAudience("gomoku-web"))
 	if err != nil {
-		return domain.AuthSession{}, err
+		return account.AuthSession{}, err
 	}
 	id, err := strconv.ParseInt(c.Subject, 10, 64)
 	if err != nil || id <= 0 || len(c.SessionID) != 64 || c.Version < 1 {
-		return domain.AuthSession{}, domain.ErrUnauthenticated
+		return account.AuthSession{}, account.ErrUnauthenticated
 	}
-	return domain.AuthSession{ID: c.SessionID, UserID: id, Version: c.Version, ExpiresAt: c.ExpiresAt.Time}, nil
+	return account.AuthSession{ID: c.SessionID, UserID: id, Version: c.Version, ExpiresAt: c.ExpiresAt.Time}, nil
 }

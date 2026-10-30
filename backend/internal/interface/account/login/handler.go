@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 
-	"gomoku-backend/internal/domain"
-	"gomoku-backend/internal/interface/httpapi/auth"
+	"gomoku-backend/internal/domain/account"
+	"gomoku-backend/internal/interface/account/auth"
 	"gomoku-backend/internal/interface/httpapi/response"
-	"gomoku-backend/internal/usecase/authentication"
+	"gomoku-backend/internal/usecase/account/authentication"
 )
 
 type request struct {
@@ -37,7 +37,7 @@ func (h *handler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.authentication.Authenticate(r.Context(), input.AccountName, input.Password)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
+		if errors.Is(err, account.ErrInvalidCredentials) {
 			response.WriteError(w, http.StatusUnauthorized, "アカウント名またはパスワードが正しくありません。")
 			return
 		}

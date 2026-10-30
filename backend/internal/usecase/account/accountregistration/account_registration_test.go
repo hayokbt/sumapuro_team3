@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type registrationRepositoryStub struct {
-	pending       domain.PendingRegistration
+	pending       account.PendingRegistration
 	pendingID     int64
 	removedID     int64
 	verifiedEmail string
@@ -20,7 +20,7 @@ type registrationRepositoryStub struct {
 	verifyErr     error
 }
 
-func (r *registrationRepositoryStub) SavePending(_ context.Context, pending domain.PendingRegistration) (int64, error) {
+func (r *registrationRepositoryStub) SavePending(_ context.Context, pending account.PendingRegistration) (int64, error) {
 	r.pending = pending
 	return r.pendingID, r.saveErr
 }
@@ -69,7 +69,7 @@ func TestStartSavesRegistrationAndSendsVerificationCode(t *testing.T) {
 	if repository.pending.AccountName != "player" || repository.pending.PasswordHash != "hashed-password" {
 		t.Fatalf("unexpected pending registration: %+v", repository.pending)
 	}
-	if repository.pending.VerificationCodeHash != domain.HashVerificationCode(sender.code) {
+	if repository.pending.VerificationCodeHash != account.HashVerificationCode(sender.code) {
 		t.Fatal("saved verification code hash does not match the sent code")
 	}
 	if len(sender.code) != 6 || repository.pending.ExpiresAt.Before(time.Now()) {
@@ -83,7 +83,7 @@ func TestStartRemovesRegistrationWhenEmailFails(t *testing.T) {
 	registration := NewAccountRegistration(repository, sender, passwordHasherStub{})
 
 	err := registration.Start(context.Background(), "player@example.com", "player", "strong-pass-123")
-	if !errors.Is(err, domain.ErrEmailDelivery) {
+	if !errors.Is(err, account.ErrEmailDelivery) {
 		t.Fatalf("expected email delivery error, got %v", err)
 	}
 	if repository.removedID != repository.pendingID {
