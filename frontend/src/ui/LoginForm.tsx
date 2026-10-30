@@ -32,6 +32,7 @@ function LoginForm({
               value={accountName}
               onChange={(event) => onAccountNameChange(event.target.value)}
               required
+              disabled={isSubmitting}
             />
           </label>
           <label>
@@ -43,6 +44,7 @@ function LoginForm({
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
               required
+              disabled={isSubmitting}
             />
           </label>
           {errorMessage && <p role="alert">{errorMessage}</p>}

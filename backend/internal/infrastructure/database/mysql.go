@@ -70,6 +70,15 @@ func initializeSchema(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("execute schema statement: %w", err)
 		}
 	}
+	var count int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'auth_version'").Scan(&count); err != nil {
+		return err
+	}
+	if count == 0 {
+		if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN auth_version BIGINT NOT NULL DEFAULT 1"); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
