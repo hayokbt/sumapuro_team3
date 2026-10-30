@@ -129,6 +129,10 @@ function GameForm() {
                 key={index}
                 className={`gomoku-cell${cell === null ? '' : ` gomoku-stone-${cell === 0 ? 'black' : 'white'}`}`}
                 type="button"
+                style={{
+                  left: `${5 + (column / (BOARD_SIZE - 1)) * 90}%`,
+                  top: `${5 + (row / (BOARD_SIZE - 1)) * 90}%`,
+                }}
                 aria-label={`${row + 1}行${column + 1}列${cell === null ? '空き' : PLAYER_NAMES[cell]}`}
                 aria-disabled={isDisabled}
                 disabled={isDisabled}

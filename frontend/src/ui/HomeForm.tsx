@@ -17,7 +17,10 @@ function HomeForm({ state, errorMessage, isSubmitting, onLogout }: HomeFormProps
     <main className="home-page">
       <section className="home-menu" aria-labelledby="home-title">
         <p className="home-eyebrow">GOMOKU TAISEN</p>
-        <h1 id="home-title">五目並べ</h1>
+        <h1 id="home-title" className="home-title">
+          <span>五目並べ</span>
+          <span>おんらいん</span>
+        </h1>
         <p className="home-description" role="status">{labels[state]}</p>
         {errorMessage && <p className="home-status" role="alert">{errorMessage}</p>}
         {state === 'loggedIn' && (

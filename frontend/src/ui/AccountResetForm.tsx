@@ -24,44 +24,46 @@ function AccountResetForm({
   errorMessage,
 }: AccountResetFormProps) {
   return (
-    <form className="account-reset-form" onSubmit={onSubmit}>
-      {statusMessage && <p role="status">{statusMessage}</p>}
-      {errorMessage && <p role="alert">{errorMessage}</p>}
-      <label>
-        アカウント名
-        <input
-          type="text"
-          name="accountName"
-          autoComplete="username"
-          value={accountName}
-          onChange={(event) => onAccountNameChange(event.target.value)}
-          required
-          maxLength={50}
-          disabled={isSaving || isCompleted}
-        />
-      </label>
-      <label>
-        パスワード
-        <input
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(event) => onPasswordChange(event.target.value)}
-          required
-          minLength={8}
-          maxLength={72}
-          disabled={isSaving || isCompleted}
-        />
-      </label>
-      {isCompleted
-        ? <a href="/login">ログイン画面へ</a>
-        : (
-          <button type="submit" disabled={isSaving}>
-            {isSaving ? '更新中...' : 'アカウント情報を更新'}
-          </button>
-        )}
-    </form>
+    <main className="account-reset-page">
+      <form className="account-reset-form" onSubmit={onSubmit}>
+        {statusMessage && <p role="status">{statusMessage}</p>}
+        {errorMessage && <p role="alert">{errorMessage}</p>}
+        <label>
+          アカウント名
+          <input
+            type="text"
+            name="accountName"
+            autoComplete="username"
+            value={accountName}
+            onChange={(event) => onAccountNameChange(event.target.value)}
+            required
+            maxLength={50}
+            disabled={isSaving || isCompleted}
+          />
+        </label>
+        <label>
+          パスワード
+          <input
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => onPasswordChange(event.target.value)}
+            required
+            minLength={8}
+            maxLength={72}
+            disabled={isSaving || isCompleted}
+          />
+        </label>
+        {isCompleted
+          ? <a href="/login">ログイン画面へ</a>
+          : (
+            <button type="submit" disabled={isSaving}>
+              {isSaving ? '更新中...' : 'アカウント情報を更新'}
+            </button>
+          )}
+      </form>
+    </main>
   )
 }
 
