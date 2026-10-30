@@ -24,7 +24,7 @@ function AccountResetForm({
   errorMessage,
 }: AccountResetFormProps) {
   return (
-    <form onSubmit={onSubmit}>
+    <form className="account-reset-form" onSubmit={onSubmit}>
       {statusMessage && <p role="status">{statusMessage}</p>}
       {errorMessage && <p role="alert">{errorMessage}</p>}
       <label>

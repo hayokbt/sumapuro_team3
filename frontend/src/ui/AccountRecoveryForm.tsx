@@ -26,52 +26,54 @@ function AccountRecoveryForm({
   onEditEmail,
 }: AccountRecoveryFormProps) {
   return (
-    <form onSubmit={onSubmit}>
-      <label>
-        メールアドレス
-        <input
-          type="email"
-          name="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => onEmailChange(event.target.value)}
-          required
-          readOnly={codeRequested}
-          disabled={isSubmitting}
-        />
-      </label>
-      {codeRequested && (
+    <main className="account-recovery-page">
+      <form className="form-container account-recovery-form" onSubmit={onSubmit}>
         <label>
-          確認コード
+          メールアドレス
           <input
-            type="text"
-            name="code"
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            value={verificationCode}
-            onChange={(event) => onCodeChange(event.target.value)}
+            type="email"
+            name="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
             required
+            readOnly={codeRequested}
             disabled={isSubmitting}
           />
         </label>
-      )}
-      {statusMessage && <p role="status">{statusMessage}</p>}
-      {errorMessage && <p role="alert">{errorMessage}</p>}
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting
-          ? '処理中...'
-          : codeRequested
-            ? '確認コードを確認'
-            : '確認コードを送信'}
-      </button>
-      {codeRequested && (
-        <button type="button" onClick={onEditEmail} disabled={isSubmitting}>
-          メールアドレスを変更
+        {codeRequested && (
+          <label>
+            確認コード
+            <input
+              type="text"
+              name="code"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={verificationCode}
+              onChange={(event) => onCodeChange(event.target.value)}
+              required
+              disabled={isSubmitting}
+            />
+          </label>
+        )}
+        {statusMessage && <p role="status">{statusMessage}</p>}
+        {errorMessage && <p role="alert">{errorMessage}</p>}
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? '処理中...'
+            : codeRequested
+              ? '確認コードを確認'
+              : 'アカウント復旧'}
         </button>
-      )}
-    </form>
+        {codeRequested && (
+          <button type="button" onClick={onEditEmail} disabled={isSubmitting}>
+            メールアドレスを変更
+          </button>
+        )}
+      </form>
+    </main>
   )
 }
 
