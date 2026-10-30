@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"gomoku-backend/internal/domain"
-	"gomoku-backend/internal/interface/httpapi/auth"
+	"gomoku-backend/internal/domain/account"
+	"gomoku-backend/internal/interface/account/auth"
 )
 
 type authenticationStub struct {
 	err error
 }
 
-func (a authenticationStub) Authenticate(context.Context, string, string) (domain.AuthenticatedUser, error) {
-	return domain.AuthenticatedUser{ID: 1, Version: 1}, a.err
+func (a authenticationStub) Authenticate(context.Context, string, string) (account.AuthenticatedUser, error) {
+	return account.AuthenticatedUser{ID: 1, Version: 1}, a.err
 }
 
 func TestLoginHandler(t *testing.T) {
@@ -43,7 +43,7 @@ func TestLoginHandler(t *testing.T) {
 			name:           "invalid credentials",
 			method:         http.MethodPost,
 			body:           `{"accountName":"player","password":"wrong-password"}`,
-			authentication: authenticationStub{err: domain.ErrInvalidCredentials},
+			authentication: authenticationStub{err: account.ErrInvalidCredentials},
 			wantStatus:     http.StatusUnauthorized,
 			wantError:      "アカウント名またはパスワードが正しくありません。",
 		},
@@ -98,10 +98,10 @@ func TestLoginHandler(t *testing.T) {
 
 type sessionStub struct{}
 
-func (sessionStub) Start(context.Context, domain.AuthenticatedUser) (string, error) {
+func (sessionStub) Start(context.Context, account.AuthenticatedUser) (string, error) {
 	return "jwt", nil
 }
-func (sessionStub) Verify(context.Context, string) (domain.AuthSession, error) {
-	return domain.AuthSession{}, nil
+func (sessionStub) Verify(context.Context, string) (account.AuthSession, error) {
+	return account.AuthSession{}, nil
 }
 func (sessionStub) Logout(context.Context, string) error { return nil }

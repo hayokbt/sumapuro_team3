@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"gomoku-backend/internal/interface/httpapi/accountcreate"
-	"gomoku-backend/internal/interface/httpapi/accountrecovery"
-	"gomoku-backend/internal/interface/httpapi/accountverify"
-	"gomoku-backend/internal/interface/httpapi/auth"
-	"gomoku-backend/internal/interface/httpapi/login"
+	"gomoku-backend/internal/interface/account/accountcreate"
+	"gomoku-backend/internal/interface/account/accountrecovery"
+	"gomoku-backend/internal/interface/account/accountverify"
+	"gomoku-backend/internal/interface/account/auth"
+	"gomoku-backend/internal/interface/account/login"
 	"gomoku-backend/internal/interface/httpapi/middleware"
 	"gomoku-backend/internal/interface/httpapi/response"
-	recoveryusecase "gomoku-backend/internal/usecase/accountrecovery"
-	"gomoku-backend/internal/usecase/accountregistration"
-	"gomoku-backend/internal/usecase/authentication"
+	recoveryusecase "gomoku-backend/internal/usecase/account/accountrecovery"
+	"gomoku-backend/internal/usecase/account/accountregistration"
+	"gomoku-backend/internal/usecase/account/authentication"
 )
 
 func NewHandler(

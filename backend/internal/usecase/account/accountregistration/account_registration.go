@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type AccountRegistration struct {
-	repository domain.RegistrationRepository
-	sender     domain.VerificationEmailSender
-	hasher     domain.PasswordHasher
+	repository account.RegistrationRepository
+	sender     account.VerificationEmailSender
+	hasher     account.PasswordHasher
 	now        func() time.Time
 }
 
 func NewAccountRegistration(
-	repository domain.RegistrationRepository,
-	sender domain.VerificationEmailSender,
-	hasher domain.PasswordHasher,
+	repository account.RegistrationRepository,
+	sender account.VerificationEmailSender,
+	hasher account.PasswordHasher,
 ) *AccountRegistration {
 	return &AccountRegistration{
 		repository: repository,
@@ -30,7 +30,7 @@ func NewAccountRegistration(
 }
 
 func (r *AccountRegistration) Start(ctx context.Context, email, accountName, password string) error {
-	registration, err := domain.NewRegistration(email, accountName, password)
+	registration, err := account.NewRegistration(email, accountName, password)
 	if err != nil {
 		return err
 	}
@@ -38,17 +38,17 @@ func (r *AccountRegistration) Start(ctx context.Context, email, accountName, pas
 	if err != nil {
 		return fmt.Errorf("hash registration password: %w", err)
 	}
-	code, err := domain.NewVerificationCode()
+	code, err := account.NewVerificationCode()
 	if err != nil {
 		return err
 	}
 
-	pending := domain.PendingRegistration{
+	pending := account.PendingRegistration{
 		Email:                registration.Email,
 		AccountName:          registration.AccountName,
 		PasswordHash:         passwordHash,
-		VerificationCodeHash: domain.HashVerificationCode(code),
-		ExpiresAt:            r.now().Add(domain.VerificationCodeLifetime),
+		VerificationCodeHash: account.HashVerificationCode(code),
+		ExpiresAt:            r.now().Add(account.VerificationCodeLifetime),
 	}
 	id, err := r.repository.SavePending(ctx, pending)
 	if err != nil {
@@ -57,18 +57,18 @@ func (r *AccountRegistration) Start(ctx context.Context, email, accountName, pas
 	if err := r.sender.SendVerificationCode(registration.Email, code); err != nil {
 		if cleanupErr := r.repository.RemovePending(ctx, id); cleanupErr != nil {
 			return errors.Join(
-				domain.ErrEmailDelivery,
+				account.ErrEmailDelivery,
 				fmt.Errorf("send verification email: %w", err),
 				fmt.Errorf("remove unsent registration: %w", cleanupErr),
 			)
 		}
-		return errors.Join(domain.ErrEmailDelivery, fmt.Errorf("send verification email: %w", err))
+		return errors.Join(account.ErrEmailDelivery, fmt.Errorf("send verification email: %w", err))
 	}
 	return nil
 }
 
 func (r *AccountRegistration) Verify(ctx context.Context, email, code string) error {
-	normalizedEmail, err := domain.NormalizeEmail(email)
+	normalizedEmail, err := account.NormalizeEmail(email)
 	if err != nil {
 		return err
 	}
