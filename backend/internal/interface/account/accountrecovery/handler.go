@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"gomoku-backend/internal/interface/httpapi/response"
-	"gomoku-backend/internal/usecase/accountrecovery"
+	"gomoku-backend/internal/usecase/account/accountrecovery"
 )
 
 type requestCodeRequest struct {

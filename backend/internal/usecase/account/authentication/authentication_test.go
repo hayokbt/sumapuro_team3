@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type repositoryStub struct {
@@ -15,9 +15,9 @@ type repositoryStub struct {
 	accountName  string
 }
 
-func (r *repositoryStub) PasswordHashByAccountName(_ context.Context, accountName string) (domain.AuthenticatedUser, error) {
+func (r *repositoryStub) PasswordHashByAccountName(_ context.Context, accountName string) (account.AuthenticatedUser, error) {
 	r.accountName = accountName
-	return domain.AuthenticatedUser{ID: 1, Version: 1, PasswordHash: r.passwordHash}, r.err
+	return account.AuthenticatedUser{ID: 1, Version: 1, PasswordHash: r.passwordHash}, r.err
 }
 
 type verifierStub struct {
@@ -55,7 +55,7 @@ func TestAuthenticate(t *testing.T) {
 			name:         "incorrect password",
 			accountName:  "player",
 			password:     "incorrect",
-			wantError:    domain.ErrInvalidCredentials,
+			wantError:    account.ErrInvalidCredentials,
 			wantVerifier: true,
 			wantAccount:  "player",
 		},
@@ -64,7 +64,7 @@ func TestAuthenticate(t *testing.T) {
 			accountName:     "unknown",
 			password:        "password",
 			repositoryError: sql.ErrNoRows,
-			wantError:       domain.ErrInvalidCredentials,
+			wantError:       account.ErrInvalidCredentials,
 			wantAccount:     "unknown",
 		},
 		{
@@ -88,12 +88,12 @@ func TestAuthenticate(t *testing.T) {
 			name:        "blank account name",
 			accountName: "  ",
 			password:    "password",
-			wantError:   domain.ErrInvalidCredentials,
+			wantError:   account.ErrInvalidCredentials,
 		},
 		{
 			name:        "blank password",
 			accountName: "player",
-			wantError:   domain.ErrInvalidCredentials,
+			wantError:   account.ErrInvalidCredentials,
 		},
 	}
 

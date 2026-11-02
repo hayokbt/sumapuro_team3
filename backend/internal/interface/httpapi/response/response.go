@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 const maxRequestBodyBytes = 16 * 1024
@@ -35,17 +35,17 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, destination any) error {
 
 func WriteRegistrationError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, domain.ErrInvalidRegistration):
+	case errors.Is(err, account.ErrInvalidRegistration):
 		WriteError(w, http.StatusBadRequest, "入力内容を確認してください。パスワードは8〜72バイトで入力してください。")
-	case errors.Is(err, domain.ErrAccountExists):
+	case errors.Is(err, account.ErrAccountExists):
 		WriteError(w, http.StatusConflict, "メールアドレスまたはアカウント名は既に使用されています。")
-	case errors.Is(err, domain.ErrInvalidCode):
+	case errors.Is(err, account.ErrInvalidCode):
 		WriteError(w, http.StatusBadRequest, "確認コードが正しくありません。")
-	case errors.Is(err, domain.ErrExpiredCode):
+	case errors.Is(err, account.ErrExpiredCode):
 		WriteError(w, http.StatusGone, "確認コードの有効期限が切れています。最初からやり直してください。")
-	case errors.Is(err, domain.ErrTooManyAttempts):
+	case errors.Is(err, account.ErrTooManyAttempts):
 		WriteError(w, http.StatusTooManyRequests, "確認コードの入力回数上限に達しました。最初からやり直してください。")
-	case errors.Is(err, domain.ErrEmailDelivery):
+	case errors.Is(err, account.ErrEmailDelivery):
 		log.Printf("send account verification email: %v", err)
 		WriteError(w, http.StatusBadGateway, "確認メールを送信できませんでした。時間をおいて再度お試しください。")
 	default:
@@ -61,19 +61,19 @@ func WriteAuthenticationError(w http.ResponseWriter, err error) {
 
 func WriteAccountRecoveryError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, domain.ErrInvalidRegistration):
+	case errors.Is(err, account.ErrInvalidRegistration):
 		WriteError(w, http.StatusBadRequest, "メールアドレス、アカウント名、またはパスワードを確認してください。")
-	case errors.Is(err, domain.ErrAccountExists):
+	case errors.Is(err, account.ErrAccountExists):
 		WriteError(w, http.StatusConflict, "そのアカウント名は既に使用されています。")
-	case errors.Is(err, domain.ErrInvalidCode):
+	case errors.Is(err, account.ErrInvalidCode):
 		WriteError(w, http.StatusBadRequest, "確認コードが正しくありません。")
-	case errors.Is(err, domain.ErrExpiredCode):
+	case errors.Is(err, account.ErrExpiredCode):
 		WriteError(w, http.StatusGone, "確認コードの有効期限が切れています。最初からやり直してください。")
-	case errors.Is(err, domain.ErrTooManyAttempts):
+	case errors.Is(err, account.ErrTooManyAttempts):
 		WriteError(w, http.StatusTooManyRequests, "確認コードの入力回数上限に達しました。最初からやり直してください。")
-	case errors.Is(err, domain.ErrInvalidRecoveryToken):
+	case errors.Is(err, account.ErrInvalidRecoveryToken):
 		WriteError(w, http.StatusGone, "復旧手続きの有効期限が切れています。最初からやり直してください。")
-	case errors.Is(err, domain.ErrEmailDelivery):
+	case errors.Is(err, account.ErrEmailDelivery):
 		log.Printf("send account recovery email: %v", err)
 		WriteError(w, http.StatusBadGateway, "確認メールを送信できませんでした。時間をおいて再度お試しください。")
 	default:

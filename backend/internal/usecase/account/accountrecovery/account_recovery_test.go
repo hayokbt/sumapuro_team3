@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type recoveryRepositoryStub struct {
@@ -117,16 +117,16 @@ func TestRequestCodeSavesAndSendsCode(t *testing.T) {
 	if repository.email != "player@example.com" || sender.email != repository.email {
 		t.Fatalf("email was not normalized: repository=%q sender=%q", repository.email, sender.email)
 	}
-	if len(sender.code) != 6 || repository.codeHash != domain.HashVerificationCode(sender.code) {
+	if len(sender.code) != 6 || repository.codeHash != account.HashVerificationCode(sender.code) {
 		t.Fatalf("recovery code was not saved as a hash: sent=%q hash=%q", sender.code, repository.codeHash)
 	}
-	if !repository.expiresAt.Equal(now.Add(domain.VerificationCodeLifetime)) {
-		t.Errorf("expiry = %v, want %v", repository.expiresAt, now.Add(domain.VerificationCodeLifetime))
+	if !repository.expiresAt.Equal(now.Add(account.VerificationCodeLifetime)) {
+		t.Errorf("expiry = %v, want %v", repository.expiresAt, now.Add(account.VerificationCodeLifetime))
 	}
 }
 
 func TestRequestCodeDoesNotRevealUnknownAccount(t *testing.T) {
-	repository := &recoveryRepositoryStub{saveErr: domain.ErrAccountNotFound}
+	repository := &recoveryRepositoryStub{saveErr: account.ErrAccountNotFound}
 	sender := &recoveryEmailSenderStub{}
 	service := NewAccountRecovery(repository, sender, &recoveryPasswordHasherStub{})
 
@@ -144,10 +144,10 @@ func TestRequestCodeRemovesUnsentCode(t *testing.T) {
 	service := NewAccountRecovery(repository, sender, &recoveryPasswordHasherStub{})
 
 	err := service.RequestCode(context.Background(), "player@example.com")
-	if !errors.Is(err, domain.ErrEmailDelivery) {
+	if !errors.Is(err, account.ErrEmailDelivery) {
 		t.Fatalf("RequestCode() error = %v, want email delivery error", err)
 	}
-	if repository.removeCodeHash != domain.HashVerificationCode(sender.code) {
+	if repository.removeCodeHash != account.HashVerificationCode(sender.code) {
 		t.Error("did not remove the recovery code whose email failed")
 	}
 }
@@ -205,7 +205,7 @@ func TestResetAccountValidatesAndUpdatesCredentials(t *testing.T) {
 }
 
 func TestResetAccountRejectsInvalidTokenBeforeHashing(t *testing.T) {
-	repository := &recoveryRepositoryStub{validateErr: domain.ErrInvalidRecoveryToken}
+	repository := &recoveryRepositoryStub{validateErr: account.ErrInvalidRecoveryToken}
 	hasher := &recoveryPasswordHasherStub{}
 	service := NewAccountRecovery(repository, &recoveryEmailSenderStub{}, hasher)
 
@@ -216,7 +216,7 @@ func TestResetAccountRejectsInvalidTokenBeforeHashing(t *testing.T) {
 		"new-player",
 		"new-strong-password",
 	)
-	if !errors.Is(err, domain.ErrInvalidRecoveryToken) {
+	if !errors.Is(err, account.ErrInvalidRecoveryToken) {
 		t.Fatalf("ResetAccount() error = %v, want invalid recovery token", err)
 	}
 	if hasher.password != "" || repository.resetAccountName != "" {
@@ -230,7 +230,7 @@ func TestResetAccountRejectsInvalidCredentialsBeforeHashing(t *testing.T) {
 	service := NewAccountRecovery(repository, &recoveryEmailSenderStub{}, hasher)
 
 	err := service.ResetAccount(context.Background(), "player@example.com", "token", "", "short")
-	if !errors.Is(err, domain.ErrInvalidRegistration) {
+	if !errors.Is(err, account.ErrInvalidRegistration) {
 		t.Fatalf("ResetAccount() error = %v, want invalid registration", err)
 	}
 	if hasher.password != "" || repository.resetAccountName != "" {

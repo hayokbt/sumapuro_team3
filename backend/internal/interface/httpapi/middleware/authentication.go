@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"gomoku-backend/internal/domain"
-	"gomoku-backend/internal/interface/httpapi/auth"
+	"gomoku-backend/internal/domain/account"
+	"gomoku-backend/internal/interface/account/auth"
 )
 
 type userKey struct{}
@@ -18,7 +18,7 @@ func Authentication(manager *auth.Manager, next http.Handler) http.Handler {
 		session, err := manager.Sessions.Verify(r.Context(), auth.Raw(r))
 		if err != nil {
 			status := 500
-			if errors.Is(err, domain.ErrUnauthenticated) {
+			if errors.Is(err, account.ErrUnauthenticated) {
 				status = 401
 			}
 			http.Error(w, "認証が必要です。", status)

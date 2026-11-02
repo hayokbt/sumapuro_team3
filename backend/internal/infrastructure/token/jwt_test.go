@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 func TestJWTValidation(t *testing.T) {
@@ -15,7 +15,7 @@ func TestJWTValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := domain.AuthSession{ID: "0123456789012345678901234567890123456789012345678901234567890123", UserID: 42, Version: 2, ExpiresAt: time.Now().Add(time.Minute)}
+	s := account.AuthSession{ID: "0123456789012345678901234567890123456789012345678901234567890123", UserID: 42, Version: 2, ExpiresAt: time.Now().Add(time.Minute)}
 	raw, err := codec.Issue(s)
 	if err != nil {
 		t.Fatal(err)

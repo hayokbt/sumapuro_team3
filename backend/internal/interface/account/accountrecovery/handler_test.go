@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"gomoku-backend/internal/domain"
-	recoveryusecase "gomoku-backend/internal/usecase/accountrecovery"
+	"gomoku-backend/internal/domain/account"
+	recoveryusecase "gomoku-backend/internal/usecase/account/accountrecovery"
 )
 
 type recoveryServiceStub struct {
@@ -60,7 +60,7 @@ func TestRecoveryHandlers(t *testing.T) {
 			name:       "invalid recovery code",
 			handler:    NewVerifyHandler,
 			body:       `{"email":"player@example.com","code":"000000"}`,
-			service:    recoveryServiceStub{verifyErr: domain.ErrInvalidCode},
+			service:    recoveryServiceStub{verifyErr: account.ErrInvalidCode},
 			wantStatus: http.StatusBadRequest,
 			wantText:   "確認コードが正しくありません。",
 		},
@@ -75,7 +75,7 @@ func TestRecoveryHandlers(t *testing.T) {
 			name:       "duplicate account name",
 			handler:    NewResetHandler,
 			body:       `{"email":"player@example.com","resetToken":"token","accountName":"existing-player","password":"strong-password"}`,
-			service:    recoveryServiceStub{resetErr: domain.ErrAccountExists},
+			service:    recoveryServiceStub{resetErr: account.ErrAccountExists},
 			wantStatus: http.StatusConflict,
 			wantText:   "そのアカウント名は既に使用されています。",
 		},

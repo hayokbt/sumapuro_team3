@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type PasswordHasher interface {
@@ -19,15 +19,15 @@ type PasswordHasher interface {
 }
 
 type AccountRecovery struct {
-	repository domain.AccountRecoveryRepository
-	sender     domain.RecoveryEmailSender
+	repository account.AccountRecoveryRepository
+	sender     account.RecoveryEmailSender
 	hasher     PasswordHasher
 	now        func() time.Time
 }
 
 func NewAccountRecovery(
-	repository domain.AccountRecoveryRepository,
-	sender domain.RecoveryEmailSender,
+	repository account.AccountRecoveryRepository,
+	sender account.RecoveryEmailSender,
 	hasher PasswordHasher,
 ) *AccountRecovery {
 	return &AccountRecovery{
@@ -39,22 +39,22 @@ func NewAccountRecovery(
 }
 
 func (r *AccountRecovery) RequestCode(ctx context.Context, email string) error {
-	normalizedEmail, err := domain.NormalizeEmail(email)
+	normalizedEmail, err := account.NormalizeEmail(email)
 	if err != nil {
 		return err
 	}
-	code, err := domain.NewVerificationCode()
+	code, err := account.NewVerificationCode()
 	if err != nil {
 		return fmt.Errorf("generate account recovery code: %w", err)
 	}
-	codeHash := domain.HashVerificationCode(code)
+	codeHash := account.HashVerificationCode(code)
 	err = r.repository.SaveRecoveryCode(
 		ctx,
 		normalizedEmail,
 		codeHash,
-		r.now().Add(domain.VerificationCodeLifetime),
+		r.now().Add(account.VerificationCodeLifetime),
 	)
-	if errors.Is(err, domain.ErrAccountNotFound) {
+	if errors.Is(err, account.ErrAccountNotFound) {
 		return nil
 	}
 	if err != nil {
@@ -63,18 +63,18 @@ func (r *AccountRecovery) RequestCode(ctx context.Context, email string) error {
 	if err := r.sender.SendAccountRecoveryCode(normalizedEmail, code); err != nil {
 		if cleanupErr := r.repository.RemoveRecovery(ctx, normalizedEmail, codeHash); cleanupErr != nil {
 			return errors.Join(
-				domain.ErrEmailDelivery,
+				account.ErrEmailDelivery,
 				fmt.Errorf("send account recovery code: %w", err),
 				fmt.Errorf("remove unsent account recovery: %w", cleanupErr),
 			)
 		}
-		return errors.Join(domain.ErrEmailDelivery, fmt.Errorf("send account recovery code: %w", err))
+		return errors.Join(account.ErrEmailDelivery, fmt.Errorf("send account recovery code: %w", err))
 	}
 	return nil
 }
 
 func (r *AccountRecovery) VerifyCode(ctx context.Context, email, code string) (string, error) {
-	normalizedEmail, err := domain.NormalizeEmail(email)
+	normalizedEmail, err := account.NormalizeEmail(email)
 	if err != nil {
 		return "", err
 	}
@@ -100,17 +100,17 @@ func (r *AccountRecovery) ResetAccount(
 	ctx context.Context,
 	email, token, accountName, password string,
 ) error {
-	normalizedEmail, err := domain.NormalizeEmail(email)
+	normalizedEmail, err := account.NormalizeEmail(email)
 	if err != nil {
 		return err
 	}
 	accountName = strings.TrimSpace(accountName)
 	if accountName == "" || utf8.RuneCountInString(accountName) > 50 ||
-		len(password) < 8 || len(password) > domain.MaxPasswordBytes {
-		return domain.ErrInvalidRegistration
+		len(password) < 8 || len(password) > account.MaxPasswordBytes {
+		return account.ErrInvalidRegistration
 	}
 	if token == "" {
-		return domain.ErrInvalidRecoveryToken
+		return account.ErrInvalidRecoveryToken
 	}
 	tokenHash := sha256.Sum256([]byte(token))
 	encodedTokenHash := base64.RawStdEncoding.EncodeToString(tokenHash[:])

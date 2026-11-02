@@ -16,7 +16,8 @@ function HomeController() {
 
     async function check() {
       if (loggingOut.current) return
-      const currentGeneration = generation.current
+      // Only the latest check may update the login state.
+      const currentGeneration = ++generation.current
       try {
         const user = await currentUser(controller.signal)
         if (!controller.signal.aborted && generation.current === currentGeneration) {

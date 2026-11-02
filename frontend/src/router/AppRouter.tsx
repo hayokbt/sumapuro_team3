@@ -1,13 +1,16 @@
 import AccountCreateController from '../controller/AccountCreateController'
 import AccountRecoveryController from '../controller/AccountRecoveryController'
 import AccountResetController from '../controller/AccountResetController'
-import LoginController from '../controller/LoginController'
 import HomeController from '../controller/HomeController'
+import LoginController from '../controller/LoginController'
+import GameForm from '../ui/GameForm'
 
 function AppRouter() {
   switch (window.location.pathname) {
     case '/home':
       return <HomeController />
+    case '/game':
+      return <GameForm />
     case '/':
     case '/login':
       return <LoginController />

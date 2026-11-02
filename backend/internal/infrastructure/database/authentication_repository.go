@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"gomoku-backend/internal/domain"
+	"gomoku-backend/internal/domain/account"
 )
 
 type AuthenticationRepository struct {
@@ -16,8 +16,8 @@ func NewAuthenticationRepository(db *sql.DB) *AuthenticationRepository {
 	return &AuthenticationRepository{db: db}
 }
 
-func (r *AuthenticationRepository) PasswordHashByAccountName(ctx context.Context, accountName string) (domain.AuthenticatedUser, error) {
-	var user domain.AuthenticatedUser
+func (r *AuthenticationRepository) PasswordHashByAccountName(ctx context.Context, accountName string) (account.AuthenticatedUser, error) {
+	var user account.AuthenticatedUser
 	if err := r.db.QueryRowContext(ctx,
 		"SELECT id, auth_version, password_hash FROM users WHERE username = ?",
 		accountName,

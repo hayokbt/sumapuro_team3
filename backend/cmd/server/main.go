@@ -13,12 +13,12 @@ import (
 	"gomoku-backend/internal/infrastructure/email"
 	"gomoku-backend/internal/infrastructure/password"
 	"gomoku-backend/internal/infrastructure/token"
+	"gomoku-backend/internal/interface/account/auth"
 	"gomoku-backend/internal/interface/httpapi"
-	"gomoku-backend/internal/interface/httpapi/auth"
-	"gomoku-backend/internal/usecase/accountrecovery"
-	"gomoku-backend/internal/usecase/accountregistration"
-	"gomoku-backend/internal/usecase/authentication"
-	"gomoku-backend/internal/usecase/authsession"
+	"gomoku-backend/internal/usecase/account/accountrecovery"
+	"gomoku-backend/internal/usecase/account/accountregistration"
+	"gomoku-backend/internal/usecase/account/authentication"
+	"gomoku-backend/internal/usecase/account/authsession"
 )
 
 func main() {
