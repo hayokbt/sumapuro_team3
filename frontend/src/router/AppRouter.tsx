@@ -4,6 +4,7 @@ import AccountResetController from '../controller/AccountResetController'
 import HomeController from '../controller/HomeController'
 import LoginController from '../controller/LoginController'
 import GameForm from '../ui/GameForm'
+import SettingController from '../controller/SettingController'
 
 function AppRouter() {
   switch (window.location.pathname) {
@@ -20,6 +21,8 @@ function AppRouter() {
       return <AccountRecoveryController />
     case '/account/reset':
       return <AccountResetController />
+    case '/settings':
+      return <SettingController />
     default:
       return <p>ページが見つかりません。</p>
   }
