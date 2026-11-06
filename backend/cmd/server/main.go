@@ -74,7 +74,7 @@ func run() error {
 	origins := strings.Split(envOrDefault("APP_ORIGINS", "http://localhost:5173,http://localhost:3000"), ",")
 	server := &http.Server{
 		Addr:              ":8080",
-		Handler:           httpapi.NewHandler(registration, loginService, recoveryService, sessions, origins),
+		Handler:           httpapi.NewHandler(registration, loginService, recoveryService, sessions, database.NewRankingRepository(db), origins),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
