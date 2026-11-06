@@ -7,7 +7,7 @@ import {
   playSe,
   saveVolumes,
   startBgm,
-} from '../audio/audioManager'
+} from '../audio/audioManager.ts'
 
 function SettingController() {
   const [bgmVolume, setBgmVolume] = useState(() => getVolumes().bgmVolume)
@@ -45,12 +45,19 @@ function SettingController() {
   }
 
   function handleAccount() {
+    // TODO: アカウント画面ができたら移動先を設定する(今は /account が存在しない)
     window.location.assign('/account')
   }
 
-  function handleLogout() {
-    // TODO: ログアウトAPIを作ったらここで呼ぶ
-    window.location.assign('/login')
+  async function handleLogout() {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'gomoku-web' },
+      })
+    } finally {
+      window.location.assign('/login')
+    }
   }
 
   function handleBack() {
