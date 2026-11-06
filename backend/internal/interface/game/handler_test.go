@@ -41,7 +41,7 @@ func TestMatchingMovesAndDisconnect(t *testing.T) {
 	s := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
 	defer s.Close()
 	dial := func(id int, mode, origin string) (*websocket.Conn, *http.Response, error) {
-		return websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode="+mode, http.Header{"Origin": {origin}, "Cookie": {fmt.Sprintf("gomoku_auth=%d", id)}})
+		return websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode="+mode+"&color=black", http.Header{"Origin": {origin}, "Cookie": {fmt.Sprintf("gomoku_auth=%d", id)}})
 	}
 	_, response, err := dial(1, "cpu", "http://evil.test")
 	if err == nil || response.StatusCode != 403 {
@@ -92,7 +92,7 @@ func TestCPUAndResign(t *testing.T) {
 	h := NewHandler([]string{"http://game.test"})
 	s := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
 	defer s.Close()
-	c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode=cpu", http.Header{"Origin": {"http://game.test"}, "Cookie": {"gomoku_auth=1"}})
+	c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode=cpu&color=black", http.Header{"Origin": {"http://game.test"}, "Cookie": {"gomoku_auth=1"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestOnlineWaitsUntilAnotherOnlinePlayerJoins(t *testing.T) {
 	defer s.Close()
 	connect := func(id, mode string) *websocket.Conn {
 		t.Helper()
-		c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode="+mode, http.Header{"Origin": {"http://game.test"}, "Cookie": {"gomoku_auth=" + id}})
+		c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode="+mode+"&color=black", http.Header{"Origin": {"http://game.test"}, "Cookie": {"gomoku_auth=" + id}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -209,5 +209,65 @@ func TestOnlineWaitsUntilAnotherOnlinePlayerJoins(t *testing.T) {
 	a, b := read(t, waiting), read(t, opponent)
 	if a.Type != "state" || b.Type != "state" || a.Color+b.Color != 3 {
 		t.Fatal("late opponent did not start the game")
+	}
+}
+
+func TestCPUColorSelection(t *testing.T) {
+	for _, color := range []string{"black", "white", "", "red"} {
+		t.Run(color, func(t *testing.T) {
+			h := NewHandler([]string{"http://game.test"})
+			s := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
+			defer s.Close()
+			c, response, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode=cpu&color="+color, http.Header{"Origin": {"http://game.test"}, "Cookie": {"gomoku_auth=1"}})
+			if color == "" || color == "red" {
+				if err == nil {
+					c.Close()
+					t.Fatal("missing or invalid selection accepted")
+				}
+				if response == nil || response.StatusCode != 400 {
+					t.Fatal("expected 400 for invalid selection")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			x := read(t, c)
+			wantColor, wantStones := 1, 0
+			if color == "white" {
+				wantColor, wantStones = 2, 1
+			}
+			stones := 0
+			for _, v := range x.Board {
+				if v != 0 {
+					stones++
+					if v != 1 {
+						t.Fatal("CPU opening must be black")
+					}
+				}
+			}
+			if x.Color != wantColor || x.Turn != wantColor || stones != wantStones {
+				t.Fatalf("wrong initial state: color=%d turn=%d stones=%d", x.Color, x.Turn, stones)
+			}
+			index := 0
+			for x.Board[index] != 0 {
+				index++
+			}
+			_ = c.WriteJSON(map[string]any{"type": "move", "index": index})
+			next := read(t, c)
+			if next.Board[index] != wantColor || next.Turn != wantColor {
+				t.Fatal("selected side not used for subsequent move")
+			}
+			stones = 0
+			for _, v := range next.Board {
+				if v != 0 {
+					stones++
+				}
+			}
+			if stones != wantStones+2 {
+				t.Fatal("CPU did not reply with opposite color")
+			}
+		})
 	}
 }
