@@ -1,105 +1,95 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { currentUser } from '../api/authentication'
 
-const BOARD_SIZE = 15
-const PLAYER_NAMES = ['あなた', '相手'] as const
-type Player = 0 | 1
-type Cell = Player | null
-
-function hasFiveInARow(board: Cell[], index: number, player: Player) {
-  const row = Math.floor(index / BOARD_SIZE)
-  const column = index % BOARD_SIZE
-  const directions: [number, number][] = [
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [1, -1],
-  ]
-
-  return directions.some(([rowStep, columnStep]) => {
-    let count = 1
-
-    for (const sign of [-1, 1]) {
-      let nextRow = row + rowStep * sign
-      let nextColumn = column + columnStep * sign
-      while (
-        nextRow >= 0
-        && nextRow < BOARD_SIZE
-        && nextColumn >= 0
-        && nextColumn < BOARD_SIZE
-        && board[nextRow * BOARD_SIZE + nextColumn] === player
-      ) {
-        count += 1
-        nextRow += rowStep * sign
-        nextColumn += columnStep * sign
-      }
-    }
-
-    return count >= 5
-  })
+const SIZE = 15
+type GameState = {
+  board: number[]
+  turn: number
+  color: number
+  winner: number
+  finished: boolean
+  reason: string
+  lastMove: number
 }
 
 function GameForm() {
-  const [board, setBoard] = useState<Cell[]>(() => Array(BOARD_SIZE * BOARD_SIZE).fill(null))
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
-  const [winner, setWinner] = useState<Player | null>(null)
-  const [isDraw, setIsDraw] = useState(false)
-  const [isSpinning, setIsSpinning] = useState(false)
-  const [rouletteLabel, setRouletteLabel] = useState('ルーレットで先手を決めましょう')
+  const mode = new URLSearchParams(window.location.search).get('mode') === 'online' ? 'online' : 'cpu'
+  const socket = useRef<WebSocket | null>(null)
+  const finished = useRef(false)
+  const [game, setGame] = useState<GameState | null>(null)
+  const [status, setStatus] = useState('ログイン状態を確認中…')
+  const [error, setError] = useState('')
+  const [closed, setClosed] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [isWaiting, setIsWaiting] = useState(false)
 
   useEffect(() => {
-    if (!isSpinning) return
-
-    const intervalId = window.setInterval(() => {
-      const randomPlayer = Math.random() < 0.5 ? 0 : 1
-      setRouletteLabel(`先手：${PLAYER_NAMES[randomPlayer]}`)
-    }, 100)
-    const timeoutId = window.setTimeout(() => {
-      const selectedPlayer: Player = Math.random() < 0.5 ? 0 : 1
-      setCurrentPlayer(selectedPlayer)
-      setRouletteLabel(`先手は「${PLAYER_NAMES[selectedPlayer]}」です`)
-      setIsSpinning(false)
-    }, 1400)
-
-    return () => {
-      window.clearInterval(intervalId)
-      window.clearTimeout(timeoutId)
+    let cancelled = false
+    let connection: WebSocket | null = null
+    const abort = new AbortController()
+    async function connect() {
+      try {
+        if (await currentUser(abort.signal) === null) {
+          if (!cancelled) { setStatus('ログインが必要です。'); setClosed(true) }
+          return
+        }
+        if (cancelled) return
+        setStatus('接続中…')
+        connection = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/game/ws?mode=${mode}`)
+        socket.current = connection
+        connection.onmessage = (event) => {
+          if (cancelled) return
+          const message = JSON.parse(event.data)
+          setPending(false)
+          if (message.type === 'waiting') {
+            setIsWaiting(true)
+            setStatus(message.message || '対戦相手を待っています。')
+            setError('')
+          }
+          if (message.type === 'state') {
+            setIsWaiting(false)
+            finished.current = message.finished
+            setGame(message)
+            setError('')
+          }
+          if (message.type === 'error') setError(message.message)
+        }
+        connection.onclose = () => {
+          if (cancelled) return
+          setClosed(true)
+          setIsWaiting(false)
+          setPending(false)
+          if (!finished.current) setError('接続が切れました。再接続するか、ログイン状態・他の対戦タブを確認してください。対局中の切断は負けになります。')
+        }
+        connection.onerror = () => {
+          if (!cancelled) setError('対戦サーバーとの通信に失敗しました。')
+        }
+      } catch {
+        if (!cancelled) { setError('ログイン状態を確認できませんでした。'); setClosed(true) }
+      }
     }
-  }, [isSpinning])
+    void connect()
+    return () => { cancelled = true; abort.abort(); connection?.close(); socket.current = null }
+  }, [mode])
 
-  function handleCellClick(index: number) {
-    if (currentPlayer === null || winner !== null || isDraw || board[index] !== null) return
-
-    const nextBoard = board.slice()
-    nextBoard[index] = currentPlayer
-    setBoard(nextBoard)
-
-    if (hasFiveInARow(nextBoard, index, currentPlayer)) {
-      setWinner(currentPlayer)
-    } else if (nextBoard.every((cell) => cell !== null)) {
-      setIsDraw(true)
-    } else {
-      setCurrentPlayer(currentPlayer === 0 ? 1 : 0)
-    }
+  function send(type: 'move' | 'resign', index?: number) {
+    if (socket.current?.readyState !== WebSocket.OPEN || pending) return
+    setPending(true)
+    socket.current.send(JSON.stringify({ type, index }))
   }
 
-  function handleNewGame() {
-    setBoard(Array(BOARD_SIZE * BOARD_SIZE).fill(null))
-    setCurrentPlayer(null)
-    setWinner(null)
-    setIsDraw(false)
-    setRouletteLabel('ルーレットで先手を決めましょう')
-  }
-
-  const gameFinished = winner !== null || isDraw
-  const turnMessage = winner !== null
-    ? winner === 0 ? 'あなたの勝ちです！' : '相手の勝ちです！'
-    : isDraw
-      ? '引き分けです'
-      : currentPlayer === null
-        ? rouletteLabel
-        : currentPlayer === 0
-          ? 'あなたの番です'
-          : '相手の番です'
+  const canMove = !!game && !game.finished && game.turn === game.color && !closed && !pending
+  const message = !game ? closed ? '対戦に接続していません' : status : game.finished
+    ? game.winner === 0 ? '引き分けです' : game.winner === game.color ? 'あなたの勝ちです！' : 'あなたの負けです'
+    : closed ? '対局との接続が切れました' : game.turn === game.color ? 'あなたの番です' : mode === 'cpu' ? 'CPUの番です' : '相手の番です'
+  const board = game?.board ?? Array<number>(SIZE * SIZE).fill(0)
+  const moveCount = board.filter((cell) => cell !== 0).length
+  const opponent = mode === 'cpu' ? 'CPU' : '対戦相手'
+  const result = game?.finished ? game.winner === 0 ? 'draw' : game.winner === game.color ? 'win' : 'lose' : null
+  const resultReason = game?.reason === 'disconnect' ? '相手の切断により対局が終了しました。'
+    : game?.reason === 'resign' ? `${game.winner === game.color ? opponent : 'あなた'}が投了しました。`
+    : game?.reason === 'draw' ? '盤面がすべて埋まりました。'
+    : '縦・横・斜めのいずれかに、ちょうど5個並びました。'
 
   return (
     <main className="game-page">
@@ -107,62 +97,67 @@ function GameForm() {
         <header className="game-header">
           <a className="game-back-link" href="/home">ホームへ戻る</a>
           <p className="home-eyebrow">GOMOKU TAISEN</p>
-          <h1 id="game-title">五目並べ</h1>
+          <h1 id="game-title">五目並べ · {mode === 'cpu' ? 'CPU対戦' : 'オンライン対戦'}</h1>
         </header>
-
-        <p className={`game-turn${gameFinished ? ' game-turn-finished' : ''}`} role="status">
-          {turnMessage}
-        </p>
-
-        <div
-          className="gomoku-board"
-          role="group"
-          aria-label="五目並べの盤面"
-        >
-          {board.map((cell, index) => {
-            const row = Math.floor(index / BOARD_SIZE)
-            const column = index % BOARD_SIZE
-            const isDisabled = currentPlayer === null || gameFinished || cell !== null
-
-            return (
-              <button
-                key={index}
-                className={`gomoku-cell${cell === null ? '' : ` gomoku-stone-${cell === 0 ? 'black' : 'white'}`}`}
-                type="button"
-                style={{
-                  left: `${5 + (column / (BOARD_SIZE - 1)) * 90}%`,
-                  top: `${5 + (row / (BOARD_SIZE - 1)) * 90}%`,
-                }}
-                aria-label={`${row + 1}行${column + 1}列${cell === null ? '空き' : PLAYER_NAMES[cell]}`}
-                aria-disabled={isDisabled}
-                disabled={isDisabled}
-                onClick={() => handleCellClick(index)}
-              >
-                {cell !== null && <span className="gomoku-stone" aria-hidden="true" />}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="game-controls">
-          <button
-            className="home-button home-button-primary"
-            type="button"
-            onClick={() => setIsSpinning(true)}
-            disabled={isSpinning || currentPlayer !== null}
-          >
-            {isSpinning ? 'ルーレット中…' : '先手をルーレットで決める'}
-          </button>
-          {gameFinished && (
-            <button className="home-button home-button-secondary" type="button" onClick={handleNewGame}>
-              もう一度遊ぶ
+        {!game && !closed && (
+          <div className="game-waiting" role="status" aria-live="polite">
+            <span className="game-waiting-dot" aria-hidden="true" />
+            <strong>{status}</strong>
+            <p>{isWaiting ? '現在、対戦できる相手がいません。この画面のままお待ちください。相手が参加すると自動で対局が始まります。' : '対局の準備ができるまでお待ちください。'}</p>
+            {isWaiting && <a className="home-button home-button-secondary" href="/home">待機をキャンセルしてホームへ戻る</a>}
+          </div>
+        )}
+        {(game || closed) && !result && <p className="game-turn" role="status">{pending ? '送信中…' : message}</p>}
+        {result && (
+          <section className={`game-result game-result-${result}`} role="status" aria-label="対戦結果">
+            <p className="game-result-label">対戦結果</p>
+            <h2>{message}</h2>
+            <p>{resultReason}</p>
+            <p>{moveCount}手で終了</p>
+          </section>
+        )}
+        {game && (
+          <div className="game-players" aria-label="対戦者と石の色">
+            <div className={`game-player${!game.finished && game.turn === game.color ? ' game-player-active' : ''}`}>
+              <span className={`game-player-stone game-player-stone-${game.color === 1 ? 'black' : 'white'}`} aria-hidden="true" />
+              <span>あなた <small>{game.color === 1 ? '黒・先手' : '白・後手'}</small></span>
+            </div>
+            <span className="game-move-count">{moveCount}手</span>
+            <div className={`game-player${!game.finished && game.turn !== game.color ? ' game-player-active' : ''}`}>
+              <span className={`game-player-stone game-player-stone-${game.color === 1 ? 'white' : 'black'}`} aria-hidden="true" />
+              <span>{opponent} <small>{game.color === 1 ? '白・後手' : '黒・先手'}</small></span>
+            </div>
+          </div>
+        )}
+        {error && <p role="alert" className="home-status">{error}</p>}
+        {(mode === 'cpu' || game) && <div className="gomoku-board" role="group" aria-label="五目並べの盤面">
+          {board.map((cell, index) => (
+            <button key={index} type="button"
+              className={`gomoku-cell${cell ? ` gomoku-stone-${cell === 1 ? 'black' : 'white'}` : ''}${game?.lastMove === index ? ' gomoku-last-move' : ''}`}
+              style={{ left: `${5 + (index % SIZE / (SIZE - 1)) * 90}%`, top: `${5 + (Math.floor(index / SIZE) / (SIZE - 1)) * 90}%` }}
+              aria-label={`${Math.floor(index / SIZE) + 1}行${index % SIZE + 1}列 ${cell === 0 ? '空き' : cell === 1 ? '黒' : '白'}${game?.lastMove === index ? '（最後の着手）' : ''}`}
+              disabled={!canMove || cell !== 0} onClick={() => send('move', index)}>
+              {cell !== 0 && <span className="gomoku-stone" aria-hidden="true" />}
             </button>
-          )}
+          ))}
+        </div>}
+        <div className="game-controls">
+          {game && !game.finished && !closed && <button className="home-button home-button-secondary" disabled={pending} onClick={() => send('resign')}>投了する</button>}
+          {(game?.finished || closed) && <a className="home-button home-button-primary" href={`/game?mode=${mode}`}>{closed && !game?.finished ? '新しい対局を始める' : mode === 'online' ? '次の相手を探す' : 'もう一度CPUと対戦'}</a>}
+          {game?.finished && <a className="home-button home-button-secondary" href="/home">ホームで対戦方式を選ぶ</a>}
+          {!game && !closed && !isWaiting && <a className="home-button home-button-secondary" href="/home">ホームへ戻る</a>}
+          {closed && <a href="/login">ログイン画面へ</a>}
         </div>
-
-        <p className="game-instructions">
-          同じ端末で交互に打ちます。黒が「あなた」、白が「相手」です。5つ並べると勝ちです。
-        </p>
+        <details className="game-rules">
+          <summary>対局ルール</summary>
+          <ul>
+            <li>縦・横・斜めにちょうど5個並べると勝ちです。</li>
+            <li>6個以上の連続では勝ちにならず、対局を続けます。</li>
+            <li>盤面がすべて埋まると引き分けです。</li>
+            <li>先手は自動で決まります。赤い印は最後の着手です。</li>
+            <li>投了・対局中の退出・切断は負けになります。</li>
+          </ul>
+        </details>
       </section>
     </main>
   )

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"fmt"
+	gameapi "gomoku-backend/internal/interface/game"
 	"net/http"
 
 	"gomoku-backend/internal/interface/account/accountcreate"
@@ -33,6 +34,7 @@ func NewHandler(
 	mux.HandleFunc("/account/recovery/reset", accountrecovery.NewResetHandler(recoveryService))
 	mux.HandleFunc("/auth/me", sessions.Current)
 	mux.HandleFunc("/logout", sessions.Logout)
+	mux.Handle("/game/ws", middleware.Authentication(sessions, gameapi.NewHandler(origins)))
 	return middleware.CSRF(origins, mux)
 }
 
