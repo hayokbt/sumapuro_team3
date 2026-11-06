@@ -632,6 +632,7 @@ input {
 
 .ranking-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background-color: rgba(255, 255, 255, 0.55);
   font-size: 22px;
@@ -646,8 +647,15 @@ input {
 
 .ranking-table th:first-child,
 .ranking-table td:first-child {
-  width: 30%;
+  width: 6rem;
+  box-sizing: border-box;
+  white-space: nowrap;
   text-align: center;
+}
+
+.ranking-table th:last-child,
+.ranking-table td:last-child {
+  overflow-wrap: anywhere;
 }
 
 .game-page {
