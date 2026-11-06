@@ -940,3 +940,78 @@ input {
 .game-rules { margin-top: 24px; font-size: 14px; line-height: 1.8; }
 .game-rules summary { cursor: pointer; }
 .game-rules ul { padding-left: 22px; }
+
+/* Small screens switch automatically; coarse pointers also get tap confirmation. */
+.game-touch-controls { display: none; }
+.gomoku-cell-selected::after {
+  content: '';
+  width: 72%;
+  height: 72%;
+  border: 2px dashed #a32c1b;
+  border-radius: 50%;
+  background: rgba(163, 44, 27, 0.2);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  button, a, input { touch-action: manipulation; }
+  .game-touch-controls { display: block; margin: 12px auto; max-width: 380px; }
+  .game-touch-controls .game-instructions { margin: 6px 0; }
+  .game-touch-controls button { min-height: 48px; }
+  .game-touch-controls button:disabled { opacity: 0.5; cursor: default; }
+  .gomoku-cell { -webkit-tap-highlight-color: transparent; }
+}
+
+@media (max-width: 640px) {
+  html { -webkit-text-size-adjust: 100%; }
+  #root { min-width: 0; }
+  .home-page, .game-page, .settings-page, .account-reset-page {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .home-page { min-height: 100svh; }
+  .home-menu { width: min(400px, 100%); }
+  .home-menu .home-title { font-size: clamp(34px, 10vw, 48px); }
+  .home-description { margin: 12px 0 24px; font-size: 16px; }
+  .home-button { min-height: 48px; padding: 13px 14px; font-size: 18px; line-height: 1.5; }
+  .home-mode-detail { font-size: 12px; }
+  .home-logout, .game-back-link { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .game-back-link { margin: 0; }
+  .game-header { margin-bottom: 12px; }
+  .game-header .home-eyebrow { margin-top: 0; font-size: 12px; }
+  .game-header h1 { font-size: clamp(23px, 6vw, 32px); line-height: 1.4; }
+  .game-turn { font-size: 21px; margin-bottom: 10px; }
+  .game-screen { min-width: 0; }
+  .game-players { gap: 4px; margin: 10px 0; }
+  .game-player { padding: 8px 6px; gap: 6px; font-size: 13px; min-width: 0; }
+  .game-player-stone { width: 16px; height: 16px; }
+  .gomoku-board { border-radius: 8px; }
+  .gomoku-stone { width: 82%; height: 82%; }
+  .gomoku-last-move .gomoku-stone { outline-offset: 1px; }
+  .game-controls { width: 100%; margin-top: 12px; }
+  .game-waiting, .game-result { padding: 18px 12px; margin-bottom: 16px; }
+  .game-waiting h2 { font-size: 21px; line-height: 1.5; }
+  .game-rules { margin-top: 18px; }
+  .game-rules summary { min-height: 44px; align-content: center; }
+  .settings-page { min-height: 100svh; box-sizing: border-box; }
+  .form-container.settings-form { width: min(400px, 100%); padding: 24px 16px; border-radius: 16px; }
+  .form-container.settings-form button[type='button'],
+  .form-container.settings-form button[type='submit'] { min-height: 48px; padding: 10px 12px; font-size: 16px; }
+  .settings-form .settings-row { gap: 10px; }
+  .settings-form input[type='range'] { min-width: 0; height: 24px; }
+  .settings-form input[type='range']::-webkit-slider-thumb { width: 28px; height: 28px; }
+  .settings-form input[type='range']::-moz-range-thumb { width: 28px; height: 28px; }
+  .form-container input { min-width: 0; font-size: 16px; }
+  .account-flow-form, .login-form { width: calc(100% - 32px); }
+  .account-flow-form label, .login-form label { font-size: 22px; }
+  .account-flow-form p { overflow-wrap: anywhere; font-size: 20px; }
+  .home-status { overflow-wrap: anywhere; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .home-page, .settings-page { place-items: start center; }
+  .settings-page { align-items: flex-start; }
+  .game-screen { width: min(440px, 100%); }
+}

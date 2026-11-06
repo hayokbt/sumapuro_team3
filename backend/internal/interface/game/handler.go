@@ -53,6 +53,18 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid mode", 400)
 		return
 	}
+	color := 0
+	if mode == "cpu" {
+		switch r.URL.Query().Get("color") {
+		case "black":
+			color = 1
+		case "white":
+			color = 2
+		default:
+			http.Error(w, "先手（black）か後手（white）を選んでください。", http.StatusBadRequest)
+			return
+		}
+	}
 	id, ok := middleware.UserID(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", 401)
@@ -73,7 +85,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.clients[id] = c
 	go c.write()
 	if mode == "cpu" {
-		c.color = 1 + rand.IntN(2)
+		c.color = color
 		c.room = &room{game: board.New(), cpu: true}
 		c.room.players[c.color-1] = c
 		if c.color == 2 {

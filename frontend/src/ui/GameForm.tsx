@@ -22,8 +22,12 @@ function GameForm() {
   const [closed, setClosed] = useState(false)
   const [pending, setPending] = useState(false)
   const [isWaiting, setIsWaiting] = useState(false)
+  const [selectedCell, setSelectedCell] = useState<number | null>(null)
+  const [cpuColor, setCPUColor] = useState<'black' | 'white' | null>(null)
+  const choosingColor = mode === 'cpu' && cpuColor === null
 
   useEffect(() => {
+    if (mode === 'cpu' && cpuColor === null) return
     let cancelled = false
     let connection: WebSocket | null = null
     const abort = new AbortController()
@@ -35,7 +39,8 @@ function GameForm() {
         }
         if (cancelled) return
         setStatus('接続中…')
-        connection = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/game/ws?mode=${mode}`)
+        const colorQuery = mode === 'cpu' ? `&color=${cpuColor}` : ''
+        connection = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/game/ws?mode=${mode}${colorQuery}`)
         socket.current = connection
         connection.onmessage = (event) => {
           if (cancelled) return
@@ -70,7 +75,7 @@ function GameForm() {
     }
     void connect()
     return () => { cancelled = true; abort.abort(); connection?.close(); socket.current = null }
-  }, [mode])
+  }, [mode, cpuColor])
 
   function send(type: 'move' | 'resign', index?: number) {
     if (socket.current?.readyState !== WebSocket.OPEN || pending) return
@@ -79,6 +84,14 @@ function GameForm() {
   }
 
   const canMove = !!game && !game.finished && game.turn === game.color && !closed && !pending
+  const canConfirm = canMove && selectedCell !== null && game.board[selectedCell] === 0
+  function chooseCell(index: number) {
+    if (window.matchMedia('(max-width: 640px), (pointer: coarse)').matches) {
+      setSelectedCell(index)
+    } else {
+      send('move', index)
+    }
+  }
   const message = !game ? closed ? '対戦に接続していません' : status : game.finished
     ? game.winner === 0 ? '引き分けです' : game.winner === game.color ? 'あなたの勝ちです！' : 'あなたの負けです'
     : closed ? '対局との接続が切れました' : game.turn === game.color ? 'あなたの番です' : mode === 'cpu' ? 'CPUの番です' : '相手の番です'
@@ -99,7 +112,17 @@ function GameForm() {
           <p className="home-eyebrow">GOMOKU TAISEN</p>
           <h1 id="game-title">五目並べ · {mode === 'cpu' ? 'CPU対戦' : 'オンライン対戦'}</h1>
         </header>
-        {!game && !closed && (
+        {choosingColor && (
+          <section className="game-waiting" aria-labelledby="cpu-color-title">
+            <h2 id="cpu-color-title">先手・後手を選んでください</h2>
+            <p>黒が先に打ちます。後手を選ぶとCPUの初手から始まります。</p>
+            <div className="game-controls">
+              <button type="button" className="home-button home-button-primary" onClick={() => setCPUColor('black')}>先手（黒）で始める</button>
+              <button type="button" className="home-button home-button-secondary" onClick={() => setCPUColor('white')}>後手（白）で始める</button>
+            </div>
+          </section>
+        )}
+        {!choosingColor && !game && !closed && (
           <div className="game-waiting" role="status" aria-live="polite">
             <span className="game-waiting-dot" aria-hidden="true" />
             <strong>{status}</strong>
@@ -130,17 +153,26 @@ function GameForm() {
           </div>
         )}
         {error && <p role="alert" className="home-status">{error}</p>}
-        {(mode === 'cpu' || game) && <div className="gomoku-board" role="group" aria-label="五目並べの盤面">
+        {game && <div className="gomoku-board" role="group" aria-label="五目並べの盤面">
           {board.map((cell, index) => (
             <button key={index} type="button"
-              className={`gomoku-cell${cell ? ` gomoku-stone-${cell === 1 ? 'black' : 'white'}` : ''}${game?.lastMove === index ? ' gomoku-last-move' : ''}`}
+              className={`gomoku-cell${cell ? ` gomoku-stone-${cell === 1 ? 'black' : 'white'}` : ''}${game?.lastMove === index ? ' gomoku-last-move' : ''}${canConfirm && selectedCell === index ? ' gomoku-cell-selected' : ''}`}
               style={{ left: `${5 + (index % SIZE / (SIZE - 1)) * 90}%`, top: `${5 + (Math.floor(index / SIZE) / (SIZE - 1)) * 90}%` }}
               aria-label={`${Math.floor(index / SIZE) + 1}行${index % SIZE + 1}列 ${cell === 0 ? '空き' : cell === 1 ? '黒' : '白'}${game?.lastMove === index ? '（最後の着手）' : ''}`}
-              disabled={!canMove || cell !== 0} onClick={() => send('move', index)}>
+              disabled={!canMove || cell !== 0} onClick={() => chooseCell(index)}>
               {cell !== 0 && <span className="gomoku-stone" aria-hidden="true" />}
             </button>
           ))}
         </div>}
+        {game && !game.finished && (
+          <div className="game-touch-controls">
+            <p className="game-instructions">交点をタップして選び、「ここに打つ」で確定します。</p>
+            <p className="game-instructions" role="status">{canConfirm && selectedCell !== null ? `${Math.floor(selectedCell / SIZE) + 1}行${selectedCell % SIZE + 1}列を選択中` : '打つ場所を選んでください'}</p>
+            <button type="button" className="home-button home-button-primary" disabled={!canConfirm} onClick={() => {
+              if (canConfirm && selectedCell !== null) { send('move', selectedCell); setSelectedCell(null) }
+            }}>ここに打つ</button>
+          </div>
+        )}
         <div className="game-controls">
           {game && !game.finished && !closed && <button className="home-button home-button-secondary" disabled={pending} onClick={() => send('resign')}>投了する</button>}
           {(game?.finished || closed) && <a className="home-button home-button-primary" href={`/game?mode=${mode}`}>{closed && !game?.finished ? '新しい対局を始める' : mode === 'online' ? '次の相手を探す' : 'もう一度CPUと対戦'}</a>}
@@ -154,7 +186,7 @@ function GameForm() {
             <li>縦・横・斜めにちょうど5個並べると勝ちです。</li>
             <li>6個以上の連続では勝ちにならず、対局を続けます。</li>
             <li>盤面がすべて埋まると引き分けです。</li>
-            <li>先手は自動で決まります。赤い印は最後の着手です。</li>
+            <li>{mode === 'cpu' ? 'CPU対戦では開始前に先手・後手を選べます。' : 'オンライン対戦の先手は自動で決まります。'}赤い印は最後の着手です。</li>
             <li>投了・対局中の退出・切断は負けになります。</li>
           </ul>
         </details>
