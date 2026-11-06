@@ -3,6 +3,7 @@ import AccountRecoveryController from '../controller/AccountRecoveryController'
 import AccountResetController from '../controller/AccountResetController'
 import HomeController from '../controller/HomeController'
 import LoginController from '../controller/LoginController'
+import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
 
@@ -10,6 +11,8 @@ function AppRouter() {
   switch (window.location.pathname) {
     case '/home':
       return <HomeController />
+    case '/ranking':
+      return <RankingController />
     case '/game':
       return <GameForm />
     case '/':

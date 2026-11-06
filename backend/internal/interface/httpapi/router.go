@@ -5,6 +5,7 @@ import (
 	gameapi "gomoku-backend/internal/interface/game"
 	"net/http"
 
+	"gomoku-backend/internal/domain/ranking"
 	"gomoku-backend/internal/interface/account/accountcreate"
 	"gomoku-backend/internal/interface/account/accountrecovery"
 	"gomoku-backend/internal/interface/account/accountverify"
@@ -12,6 +13,7 @@ import (
 	"gomoku-backend/internal/interface/account/login"
 	"gomoku-backend/internal/interface/httpapi/middleware"
 	"gomoku-backend/internal/interface/httpapi/response"
+	rankingapi "gomoku-backend/internal/interface/ranking"
 	recoveryusecase "gomoku-backend/internal/usecase/account/accountrecovery"
 	"gomoku-backend/internal/usecase/account/accountregistration"
 	"gomoku-backend/internal/usecase/account/authentication"
@@ -22,6 +24,7 @@ func NewHandler(
 	loginService authentication.Service,
 	recoveryService recoveryusecase.Service,
 	sessions *auth.Manager,
+	rankingRepository ranking.Repository,
 	origins []string,
 ) http.Handler {
 	mux := http.NewServeMux()
@@ -34,6 +37,7 @@ func NewHandler(
 	mux.HandleFunc("/account/recovery/reset", accountrecovery.NewResetHandler(recoveryService))
 	mux.HandleFunc("/auth/me", sessions.Current)
 	mux.HandleFunc("/logout", sessions.Logout)
+	mux.Handle("/ranking", rankingapi.NewHandler(rankingRepository))
 	mux.Handle("/game/ws", middleware.Authentication(sessions, gameapi.NewHandler(origins)))
 	return middleware.CSRF(origins, mux)
 }
