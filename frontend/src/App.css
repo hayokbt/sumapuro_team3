@@ -1066,3 +1066,23 @@ input {
   .settings-page { align-items: flex-start; }
   .game-screen { width: min(440px, 100%); }
 }
+
+.settings-link {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  color: var(--text-primary);
+  text-decoration: none;
+  background-color: var(--control-bg);
+  border-radius: 50%;
+}
+
+.settings-link:hover {
+  background-color: var(--control-hover-bg);
+}

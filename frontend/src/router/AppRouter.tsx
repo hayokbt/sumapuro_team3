@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import AccountCreateController from '../controller/AccountCreateController'
 import AccountRecoveryController from '../controller/AccountRecoveryController'
 import AccountResetController from '../controller/AccountResetController'
@@ -6,9 +7,10 @@ import LoginController from '../controller/LoginController'
 import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
+import { startBgm } from '../audio/audioManager'
 
-function AppRouter() {
-  switch (window.location.pathname) {
+function renderPage(pathname: string) {
+  switch (pathname) {
     case '/home':
       return <HomeController />
     case '/ranking':
@@ -29,6 +31,28 @@ function AppRouter() {
     default:
       return <p>ページが見つかりません。</p>
   }
+}
+
+function AppRouter() {
+  const pathname = window.location.pathname
+
+  useEffect(() => {
+    startBgm()
+  }, [])
+
+  // 対局中のページ遷移で接続を切らないよう、設定への入口はホームに限定する。
+  const showSettingsButton = pathname === '/home'
+
+  return (
+    <>
+      {renderPage(pathname)}
+      {showSettingsButton && (
+        <a href="/settings" className="settings-link" aria-label="設定">
+          ⚙
+        </a>
+      )}
+    </>
+  )
 }
 
 export default AppRouter
