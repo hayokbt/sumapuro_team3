@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { apiRoutes, proxyAPI } from './server/api-proxy.mjs'
 import { serveStatic } from './server/static-files.mjs'
+import { proxyWebSocket } from './server/websocket-proxy.mjs'
 
 const staticDirectory = resolve(fileURLToPath(new URL('./dist', import.meta.url)))
 const backendURL = process.env.BACKEND_URL ?? 'http://backend:8080'
@@ -29,6 +30,8 @@ const server = createServer((request, response) => {
   }
   serveStatic(request, response, pathname, staticDirectory)
 })
+
+server.on('upgrade', (request, socket, head) => proxyWebSocket(request, socket, head, backendURL))
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Frontend BFF listening on :${port}`)
