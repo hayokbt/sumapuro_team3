@@ -750,3 +750,126 @@ input {
   font-size: 14px;
   text-align: center;
 }
+/* ===== 設定画面 ===== */
+.settings-page {
+  flex: 1;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--page-bg);
+}
+
+/* .form-container の指定を上書きするため、クラスを2つ重ねて書いている */
+.form-container.settings-form {
+  width: min(360px, calc(100% - 48px));
+  max-width: none;
+  margin: 0;
+  padding: 32px 28px 28px;
+  box-sizing: border-box;
+  background-color: #d3d3d3;
+  border: 1px solid #999;
+}
+
+.settings-form .settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.settings-form .settings-top {
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.settings-form .settings-bottom {
+  justify-content: space-between;
+  margin-top: 30px;
+  margin-bottom: 0;
+}
+
+/* ボタン(.form-container button の width:80% などを打ち消す) */
+.form-container.settings-form button[type="button"],
+.form-container.settings-form button[type="submit"] {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 5px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: #e9e9e9;
+  border: 2px solid var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.form-container.settings-form button:hover:not(:disabled) {
+  background-color: #fff;
+}
+
+.form-container.settings-form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.form-container.settings-form button.settings-save {
+  min-width: 100px;
+}
+
+.form-container.settings-form button.settings-back {
+  padding: 3px 9px;
+  font-size: 16px;
+}
+
+/* BGM・効果音のラベル(.form-container label の display:block を打ち消す) */
+.form-container.settings-form label.settings-label {
+  display: block;
+  flex: 0 0 64px;
+  margin: 0;
+  padding: 5px 0;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-primary);
+  background-color: #e9e9e9;
+  border: 2px solid var(--text-primary);
+  border-radius: 8px;
+}
+
+/* スライダー */
+.settings-form input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  width: auto;
+  height: 14px;
+  margin: 0;
+  background: #fff;
+  border: 1.5px solid var(--text-primary);
+  border-radius: 7px;
+  outline: none;
+}
+
+.settings-form input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.settings-form input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.settings-form p[role="alert"] {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #b00020;
+}
