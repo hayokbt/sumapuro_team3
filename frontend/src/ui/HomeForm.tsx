@@ -45,6 +45,7 @@ function HomeForm({ state, errorMessage, isSubmitting, onLogout }: HomeFormProps
           </>
         )}
         {state === 'loggedOut' && <a href="/login">ログイン画面へ</a>}
+        <a className="home-button home-button-secondary" href="/ranking">ランキングを見る</a>
       </section>
     </main>
   )

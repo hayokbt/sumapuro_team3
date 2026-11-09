@@ -31,6 +31,7 @@ body {
   margin: 0;
   font-family: var(--font-japanese);
   font-weight: var(--font-weight-unified);
+  font-size: 20px;
 }
 
 button,
@@ -239,7 +240,7 @@ input {
   display: block;
   margin-bottom: 20px;
   font-weight: var(--font-weight-unified);
-  font-size: 14px;
+  font-size: 18px;
   color: var(--text-primary);
 }
 
@@ -249,7 +250,7 @@ input {
   width: 100%;
   padding: 14px 16px;
   margin-top: 8px;
-  font-size: 16px;
+  font-size: 22px;
   border: 2px solid var(--text-primary);
   border-radius: 24px;
   outline: none;
@@ -315,6 +316,7 @@ input {
   padding: 10px 18px;
   border: 6px solid var(--text-primary);
   border-radius: 36px;
+  font-size: 24px;
 }
 
 .account-flow-form button[type="submit"],
@@ -374,13 +376,14 @@ input {
 
 .account-reset-form label {
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .account-reset-form input[type="text"],
 .account-reset-form input[type="password"] {
   border: 4px solid var(--text-primary);
   text-align: center;
+  font-size: 22px;
 }
 
 .account-reset-form button[type="submit"] {
@@ -424,6 +427,7 @@ input {
   padding: 10px 18px;
   border: 6px solid var(--text-primary);
   border-radius: 36px;
+  font-size: 24px;
 }
 
 .login-form button[type="submit"] {
@@ -489,6 +493,7 @@ input {
   .account-flow-form input[type="text"],
   .account-flow-form input[type="password"] {
     height: 58px;
+    font-size: 22px;
   }
 
   .login-form button[type="submit"] {
@@ -531,7 +536,7 @@ input {
 .home-eyebrow {
   margin: 0 0 8px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: var(--font-weight-unified);
   letter-spacing: 0.16em;
 }
@@ -539,7 +544,7 @@ input {
 .home-menu .home-title {
   margin: 0;
   color: var(--text-primary);
-  font-size: clamp(36px, 10vw, 58px);
+  font-size: clamp(42px, 11vw, 64px);
   font-weight: var(--font-weight-unified);
   line-height: 1.3;
   letter-spacing: 0;
@@ -552,7 +557,7 @@ input {
 .home-description {
   margin: 12px 0 32px;
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: 24px;
 }
 
 .home-button {
@@ -563,7 +568,7 @@ input {
   border: 0;
   border-radius: 32px;
   font: inherit;
-  font-size: 20px;
+  font-size: 26px;
   font-weight: var(--font-weight-unified);
   text-align: center;
   text-decoration: none;
@@ -592,7 +597,7 @@ input {
 .home-status {
   margin-top: 12px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 20px;
 }
 
 .home-logout {
@@ -602,9 +607,55 @@ input {
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 16px;
+  font-size: 20px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.ranking-page {
+  min-height: 100svh;
+  padding: 32px 16px 40px;
+  box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.ranking-screen {
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
+.ranking-screen h1 {
+  margin: 24px 0;
+  font-size: clamp(32px, 8vw, 48px);
+  text-align: center;
+}
+
+.ranking-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background-color: rgba(255, 255, 255, 0.55);
+  font-size: 22px;
+  text-align: left;
+}
+
+.ranking-table th,
+.ranking-table td {
+  padding: 14px 16px;
+  border-bottom: 2px solid rgba(8, 8, 8, 0.2);
+}
+
+.ranking-table th:first-child,
+.ranking-table td:first-child {
+  width: 6rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ranking-table th:last-child,
+.ranking-table td:last-child {
+  overflow-wrap: anywhere;
 }
 
 .game-page {
@@ -645,7 +696,7 @@ input {
   width: fit-content;
   margin: 0 auto;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 18px;
 }
 
 .game-turn {
@@ -747,7 +798,7 @@ input {
 .game-instructions {
   margin-top: 14px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 18px;
   text-align: center;
 }
 /* ===== 設定画面 ===== */
@@ -796,7 +847,7 @@ input {
   width: auto;
   margin: 0;
   padding: 5px 12px;
-  font-size: 14px;
+  font-size: 18px;
   color: var(--text-primary);
   background-color: #e9e9e9;
   border: 2px solid var(--text-primary);
@@ -819,7 +870,7 @@ input {
 
 .form-container.settings-form button.settings-back {
   padding: 3px 9px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 /* BGM・効果音のラベル(.form-container label の display:block を打ち消す) */
@@ -828,7 +879,7 @@ input {
   flex: 0 0 64px;
   margin: 0;
   padding: 5px 0;
-  font-size: 14px;
+  font-size: 18px;
   text-align: center;
   color: var(--text-primary);
   background-color: #e9e9e9;
@@ -870,7 +921,7 @@ input {
 
 .settings-form p[role="alert"] {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 18px;
   color: #b00020;
 }
 .gomoku-last-move .gomoku-stone { outline: 2px solid #d34b36; outline-offset: 2px; }
@@ -878,7 +929,7 @@ input {
 .home-mode-detail {
   display: block;
   margin-top: 5px;
-  font-size: 13px;
+  font-size: 20px;
   line-height: 1.5;
 }
 
@@ -894,7 +945,7 @@ input {
 .game-waiting p,
 .game-result p {
   margin: 8px 0 0;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.6;
 }
 
@@ -908,7 +959,7 @@ input {
 }
 
 .game-result h2 { margin: 8px 0; font-size: clamp(26px, 6vw, 36px); }
-.game-result .game-result-label { margin: 0; font-size: 13px; }
+.game-result .game-result-label { margin: 0; font-size: 17px; }
 .game-result-win { border: 2px solid #397246; background: #edf7ef; color: #204c2b; }
 .game-result-lose { background: #f4f1ef; color: #443c38; }
 .game-result-draw { background: #edf2f7; color: #31475b; }
@@ -928,16 +979,16 @@ input {
   padding: 10px;
   border: 2px solid transparent;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 .game-player-active { border-color: var(--text-primary); }
-.game-player small { display: block; margin-top: 3px; font-size: 12px; }
+.game-player small { display: block; margin-top: 3px; font-size: 16px; }
 .game-player-stone { flex-shrink: 0; width: 20px; height: 20px; border: 1px solid #555; border-radius: 50%; }
 .game-player-stone-black { background: #151515; }
 .game-player-stone-white { background: #fff; }
-.game-move-count { font-size: 12px; white-space: nowrap; }
-.game-rules { margin-top: 24px; font-size: 14px; line-height: 1.8; }
+.game-move-count { font-size: 16px; white-space: nowrap; }
+.game-rules { margin-top: 24px; font-size: 18px; line-height: 1.8; }
 .game-rules summary { cursor: pointer; }
 .game-rules ul { padding-left: 22px; }
 

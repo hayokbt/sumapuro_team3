@@ -4,17 +4,17 @@ import AccountRecoveryController from '../controller/AccountRecoveryController'
 import AccountResetController from '../controller/AccountResetController'
 import HomeController from '../controller/HomeController'
 import LoginController from '../controller/LoginController'
+import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
 import { startBgm } from '../audio/audioManager'
-
-// 設定ボタンを出さない画面(ログイン・アカウント作成と、設定画面そのもの)
-const SETTINGS_BUTTON_HIDDEN_PATHS = ['/', '/login', '/account/create', '/settings']
 
 function renderPage(pathname: string) {
   switch (pathname) {
     case '/home':
       return <HomeController />
+    case '/ranking':
+      return <RankingController />
     case '/game':
       return <GameForm />
     case '/':
@@ -40,7 +40,8 @@ function AppRouter() {
     startBgm()
   }, [])
 
-  const showSettingsButton = !SETTINGS_BUTTON_HIDDEN_PATHS.includes(pathname)
+  // 対局中のページ遷移で接続を切らないよう、設定への入口はホームに限定する。
+  const showSettingsButton = pathname === '/home'
 
   return (
     <>

@@ -72,6 +72,9 @@ function AccountRecoveryForm({
             メールアドレスを変更
           </button>
         )}
+        <button className="account-flow-back" type="button" onClick={() => window.location.assign('/login')}>
+          戻る
+        </button>
       </form>
     </main>
   )
