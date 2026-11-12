@@ -37,6 +37,7 @@ function SettingController() {
     try {
       // TODO: サーバーに保存するなら ../api の関数に置き換える
       saveVolumes()
+      window.location.assign('/home') // 保存できたら、ホームへ戻る
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '設定を保存できませんでした。')
     } finally {
