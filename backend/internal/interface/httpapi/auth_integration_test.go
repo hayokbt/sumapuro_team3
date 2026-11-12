@@ -53,7 +53,7 @@ func TestAuthenticationIntegration(t *testing.T) {
 	}
 	codec, _ := token.NewJWT("integration-test-key-32-bytes-long!")
 	manager := &auth.Manager{Sessions: authsession.New(database.NewAuthSessionRepository(db), codec)}
-	server := httpapi.NewHandler(accountregistration.NewAccountRegistration(database.NewRegistrationRepository(db), mailer, hasher), authentication.NewAuthentication(database.NewAuthenticationRepository(db), hasher), accountrecovery.NewAccountRecovery(database.NewAccountRecoveryRepository(db), mailer, hasher), manager, database.NewRankingRepository(db), []string{"http://localhost:5173"})
+	server := httpapi.NewHandler(accountregistration.NewAccountRegistration(database.NewRegistrationRepository(db), mailer, hasher), authentication.NewAuthentication(database.NewAuthenticationRepository(db), hasher), accountrecovery.NewAccountRecovery(database.NewAccountRecoveryRepository(db), mailer, hasher), manager, database.NewRankingRepository(db), []string{"http://localhost:5173"}, database.NewProfileRepository(db), database.NewGameResultRepository(db))
 	request := func(method, path string, body any, cookie *http.Cookie, expected int) *httptest.ResponseRecorder {
 		t.Helper()
 		data, _ := json.Marshal(body)

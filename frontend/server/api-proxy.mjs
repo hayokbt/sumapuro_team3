@@ -6,6 +6,8 @@ export const apiRoutes = new Map([
   ['/api/account/recovery/request', '/account/recovery/request'],
   ['/api/account/recovery/verify', '/account/recovery/verify'],
   ['/api/account/recovery/reset', '/account/recovery/reset'],
+  ['/api/account', '/account'],
+  ['/api/account/settings', '/account/settings'],
   ['/api/login', '/login'],
   ['/api/auth/me', '/auth/me'],
   ['/api/ranking', '/ranking'],
@@ -19,8 +21,9 @@ function sendJSON(response, status, payload) {
 
 export async function proxyAPI(request, response, backendPath, backendURL) {
   const allowedMethod = backendPath === '/auth/me' || backendPath === '/ranking' ? 'GET' : 'POST'
-  if (request.method !== allowedMethod) {
-    response.setHeader('allow', allowedMethod)
+  const allowedMethods = backendPath === '/account' || backendPath === '/account/settings' ? ['GET', 'POST'] : [allowedMethod]
+  if (!allowedMethods.includes(request.method)) {
+    response.setHeader('allow', allowedMethods.join(', '))
     sendJSON(response, 405, { error: 'method not allowed' })
     return
   }

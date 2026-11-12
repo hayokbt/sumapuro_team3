@@ -3,8 +3,9 @@ package ranking
 import "context"
 
 type Entry struct {
-	Position    int    `json:"position"`
-	AccountName string `json:"accountName"`
+	Rating      float64 `json:"rating"`
+	Position    int     `json:"position"`
+	AccountName string  `json:"accountName"`
 }
 
 type Repository interface {

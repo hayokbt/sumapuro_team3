@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"gomoku-backend/internal/domain/account"
+	board "gomoku-backend/internal/domain/game"
 	"gomoku-backend/internal/interface/account/auth"
 	"gomoku-backend/internal/interface/httpapi/middleware"
 )
@@ -267,6 +268,70 @@ func TestCPUColorSelection(t *testing.T) {
 			}
 			if stones != wantStones+2 {
 				t.Fatal("CPU did not reply with opposite color")
+			}
+		})
+	}
+}
+
+type resultRecorder struct{ results chan board.Result }
+
+func (r resultRecorder) Save(_ context.Context, result board.Result) error {
+	r.results <- result
+	return nil
+}
+func TestResultsRecordedOnceIncludingDisconnectedPlayer(t *testing.T) {
+	for _, reason := range []string{"five", "draw", "resign", "disconnect"} {
+		t.Run(reason, func(t *testing.T) {
+			recorder := resultRecorder{make(chan board.Result, 4)}
+			h := NewHandler(nil, recorder)
+			r := newRoom(false)
+			r.users = [2]int64{11, 22}
+			a := &client{user: 11, color: 1, room: r, send: make(chan any, 32)}
+			b := &client{user: 22, color: 2, room: r, send: make(chan any, 32)}
+			r.players = [2]*client{a, b}
+			h.mu.Lock()
+			if reason == "disconnect" {
+				h.leave(a)
+			} else {
+				r.game.Finished = true
+				r.game.Winner = 1
+				r.game.Reason = reason
+				if reason == "draw" {
+					r.game.Winner = 0
+				}
+				h.broadcast(r)
+				h.broadcast(r)
+			}
+			h.mu.Unlock()
+			select {
+			case got := <-recorder.results:
+				if got.Players != r.users || got.Reason != reason || got.ID == "" || got.FinishedAt.Before(got.StartedAt) {
+					t.Fatalf("invalid saved result %+v", got)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("result not saved")
+			}
+			// Synchronize with the saved notification before testing a later disconnect.
+			deadline := time.Now().Add(time.Second)
+			for {
+				h.mu.Lock()
+				saved := r.saved
+				h.mu.Unlock()
+				if saved {
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("missing save notification")
+				}
+				time.Sleep(time.Millisecond)
+			}
+			h.mu.Lock()
+			h.leave(b)
+			h.mu.Unlock()
+			select {
+			case <-recorder.results:
+				t.Fatal("result saved twice")
+			default:
 			}
 		})
 	}

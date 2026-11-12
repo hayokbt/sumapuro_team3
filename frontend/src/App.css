@@ -830,7 +830,7 @@ input {
 }
 
 .settings-form .settings-top {
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 28px;
 }
 

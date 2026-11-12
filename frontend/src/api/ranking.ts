@@ -1,4 +1,5 @@
 export type RankingEntry = {
+  rating: number
   position: number
   accountName: string
 }
@@ -19,6 +20,9 @@ export async function fetchRanking(signal?: AbortSignal): Promise<RankingEntry[]
 function isRankingEntry(value: unknown): value is RankingEntry {
   return typeof value === 'object'
     && value !== null
+    && 'rating' in value
+    && typeof value.rating === 'number'
+    && Number.isFinite(value.rating)
     && 'position' in value
     && typeof value.position === 'number'
     && 'accountName' in value

@@ -11,7 +11,7 @@ function RankingForm({ entries, isLoading, errorMessage }: RankingFormProps) {
     <main className="ranking-page">
       <section className="ranking-screen" aria-labelledby="ranking-title">
         <a className="game-back-link" href="/home">ホームへ戻る</a>
-        <h1 id="ranking-title">ランキング</h1>
+        <h1 id="ranking-title">ランキング（上位20名）</h1>
         {isLoading && <p role="status">読み込み中…</p>}
         {errorMessage && <p className="home-status" role="alert">{errorMessage}</p>}
         {!isLoading && !errorMessage && entries.length === 0 && <p role="status">ランキングデータがありません。</p>}
@@ -21,6 +21,7 @@ function RankingForm({ entries, isLoading, errorMessage }: RankingFormProps) {
               <tr>
                 <th scope="col">順位</th>
                 <th scope="col">アカウント名</th>
+                <th scope="col">レート</th>
               </tr>
             </thead>
             <tbody>
@@ -28,6 +29,7 @@ function RankingForm({ entries, isLoading, errorMessage }: RankingFormProps) {
                 <tr key={entry.position}>
                   <td>{entry.position}位</td>
                   <td>{entry.accountName}</td>
+                  <td>{entry.rating.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

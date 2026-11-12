@@ -1,6 +1,10 @@
 package game
 
 import (
+	"context"
+	cryptorand "crypto/rand"
+	"encoding/hex"
+	"log"
 	"math/rand/v2"
 	"net/http"
 	"sync"
@@ -19,29 +23,40 @@ type client struct {
 	room  *room
 }
 type room struct {
+	id      string
+	users   [2]int64
+	started time.Time
+	saved   bool
+	saving  bool
 	game    *board.Game
 	players [2]*client
 	cpu     bool
 }
 type state struct {
-	Type string `json:"type"`
+	ResultSaved bool   `json:"resultSaved"`
+	Type        string `json:"type"`
 	*board.Game
 	Color int    `json:"color"`
 	Mode  string `json:"mode"`
 }
 type Hub struct {
+	results  board.ResultRepository
 	mu       sync.Mutex
 	waiting  []*client
 	clients  map[int64]*client
 	upgrader websocket.Upgrader
 }
 
-func NewHandler(origins []string) *Hub {
+func NewHandler(origins []string, repositories ...board.ResultRepository) *Hub {
+	var results board.ResultRepository
+	if len(repositories) > 0 {
+		results = repositories[0]
+	}
 	allowed := make(map[string]bool)
 	for _, origin := range origins {
 		allowed[origin] = true
 	}
-	return &Hub{clients: make(map[int64]*client), upgrader: websocket.Upgrader{
+	return &Hub{results: results, clients: make(map[int64]*client), upgrader: websocket.Upgrader{
 		HandshakeTimeout: 10 * time.Second,
 		CheckOrigin:      func(r *http.Request) bool { return allowed[r.Header.Get("Origin")] },
 	}}
@@ -86,7 +101,8 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go c.write()
 	if mode == "cpu" {
 		c.color = color
-		c.room = &room{game: board.New(), cpu: true}
+		c.room = newRoom(true)
+		c.room.users[c.color-1] = c.user
 		c.room.players[c.color-1] = c
 		if c.color == 2 {
 			_ = c.room.game.Move(1, c.room.game.CPU())
@@ -100,7 +116,9 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if rand.IntN(2) == 1 {
 				a, b = b, a
 			}
-			room := &room{game: board.New(), players: [2]*client{a, b}}
+			room := newRoom(false)
+			room.players = [2]*client{a, b}
+			room.users = [2]int64{a.user, b.user}
 			a.room, b.room, a.color, b.color = room, room, 1, 2
 			h.broadcast(room)
 		} else {
@@ -155,7 +173,25 @@ func (h *Hub) send(c *client, message any) {
 		c.conn.Close()
 	}
 }
+func newRoom(cpu bool) *room {
+	var id [32]byte
+	if _, err := cryptorand.Read(id[:]); err != nil {
+		panic(err)
+	}
+	return &room{id: hex.EncodeToString(id[:]), game: board.New(), cpu: cpu, started: time.Now().UTC()}
+}
+
 func (h *Hub) broadcast(r *room) {
+	if r.game.Finished && !r.saving && h.results != nil {
+		r.saving = true
+		mode := "online"
+		if r.cpu {
+			mode = "cpu"
+		}
+		result := board.Result{ID: r.id, Mode: mode, Players: r.users, Winner: r.game.Winner, Reason: r.game.Reason, Board: r.game.Board, StartedAt: r.started, FinishedAt: time.Now().UTC()}
+		go h.saveResult(r, result)
+	}
+
 	mode := "online"
 	if r.cpu {
 		mode = "cpu"
@@ -163,7 +199,7 @@ func (h *Hub) broadcast(r *room) {
 	for _, c := range r.players {
 		if c != nil {
 			copy := *r.game
-			h.send(c, state{Type: "state", Game: &copy, Color: c.color, Mode: mode})
+			h.send(c, state{ResultSaved: r.saved, Type: "state", Game: &copy, Color: c.color, Mode: mode})
 		}
 	}
 }
@@ -203,5 +239,32 @@ func (c *client) write() {
 				return
 			}
 		}
+	}
+}
+
+// Keep retrying transient database failures; one game ID is applied at most once.
+func (h *Hub) saveResult(r *room, result board.Result) {
+	for attempt := 0; ; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := h.results.Save(ctx, result)
+		cancel()
+		if err == nil {
+			h.mu.Lock()
+			r.saved = true
+			h.broadcast(r)
+			h.mu.Unlock()
+			return
+		}
+		log.Printf("save game %s (attempt %d): %v", result.ID, attempt+1, err)
+		if attempt == 0 {
+			h.mu.Lock()
+			for _, c := range r.players {
+				if c != nil {
+					h.send(c, map[string]string{"type": "error", "message": "対戦結果の保存を再試行しています。ランキング反映までお待ちください。"})
+				}
+			}
+			h.mu.Unlock()
+		}
+		time.Sleep(5 * time.Second)
 	}
 }

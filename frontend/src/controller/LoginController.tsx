@@ -1,5 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { requestLogin } from '../api/login'
+import { getSettings } from '../api/account'
+import { applyBgmVolume, applySeVolume, saveVolumes } from '../audio/audioManager'
 import LoginForm from '../ui/LoginForm'
 
 function LoginController() {
@@ -14,6 +16,8 @@ function LoginController() {
     setErrorMessage('')
     try {
       await requestLogin({ accountName, password })
+      const settings = await getSettings()
+      applyBgmVolume(settings.bgmVolume); applySeVolume(settings.seVolume); saveVolumes()
       window.location.assign('/home')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'ログインを処理できませんでした。')

@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     auth_version BIGINT NOT NULL DEFAULT 1,
+    bgm_volume TINYINT UNSIGNED NOT NULL DEFAULT 50,
+    se_volume TINYINT UNSIGNED NOT NULL DEFAULT 50,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(254) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -56,4 +58,24 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
  revoked_at DATETIME NULL,
  KEY idx_auth_sessions_expiry (expires_at),
  CONSTRAINT fk_auth_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS game_results (
+    id CHAR(64) NOT NULL PRIMARY KEY,
+    mode ENUM('cpu', 'online') NOT NULL,
+    black_user_id BIGINT UNSIGNED NULL,
+    white_user_id BIGINT UNSIGNED NULL,
+    winner TINYINT UNSIGNED NOT NULL,
+    reason VARCHAR(20) NOT NULL,
+    board JSON NOT NULL,
+    started_at DATETIME(6) NOT NULL,
+    finished_at DATETIME(6) NOT NULL,
+    black_rating_before DECIMAL(10,2) NOT NULL,
+    white_rating_before DECIMAL(10,2) NOT NULL,
+    black_rating_after DECIMAL(10,2) NOT NULL,
+    white_rating_after DECIMAL(10,2) NOT NULL,
+    KEY idx_game_black (black_user_id, finished_at),
+    KEY idx_game_white (white_user_id, finished_at),
+    CONSTRAINT fk_game_black FOREIGN KEY (black_user_id) REFERENCES users(id),
+    CONSTRAINT fk_game_white FOREIGN KEY (white_user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -3,6 +3,7 @@ import { currentUser } from '../api/authentication'
 
 const SIZE = 15
 type GameState = {
+  resultSaved: boolean
   board: number[]
   turn: number
   color: number
@@ -137,6 +138,7 @@ function GameForm() {
             <h2>{message}</h2>
             <p>{resultReason}</p>
             <p>{moveCount}手で終了</p>
+            <p>{game?.resultSaved ? '戦績・レートを保存しました。' : '戦績・レートを保存中…'}</p>
           </section>
         )}
         {game && (

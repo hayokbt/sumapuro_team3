@@ -10,6 +10,7 @@ const contentTypes = new Map([
   ['.png', 'image/png'],
   ['.svg', 'image/svg+xml'],
   ['.txt', 'text/plain; charset=utf-8'],
+  ['.mp3', 'audio/mpeg'],
   ['.woff', 'font/woff'],
   ['.woff2', 'font/woff2'],
 ])

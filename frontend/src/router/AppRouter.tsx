@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import AccountController from '../controller/AccountController'
 import AccountCreateController from '../controller/AccountCreateController'
 import AccountRecoveryController from '../controller/AccountRecoveryController'
 import AccountResetController from '../controller/AccountResetController'
@@ -7,7 +8,7 @@ import LoginController from '../controller/LoginController'
 import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
-import { startBgm } from '../audio/audioManager'
+import { installButtonSounds } from '../audio/audioManager'
 
 function renderPage(pathname: string) {
   switch (pathname) {
@@ -20,6 +21,8 @@ function renderPage(pathname: string) {
     case '/':
     case '/login':
       return <LoginController />
+    case '/account':
+      return <AccountController />
     case '/account/create':
       return <AccountCreateController />
     case '/account/recovery':
@@ -37,7 +40,7 @@ function AppRouter() {
   const pathname = window.location.pathname
 
   useEffect(() => {
-    startBgm()
+    return installButtonSounds()
   }, [])
 
   // 対局中のページ遷移で接続を切らないよう、設定への入口はホームに限定する。

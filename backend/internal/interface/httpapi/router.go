@@ -2,6 +2,10 @@ package httpapi
 
 import (
 	"fmt"
+	"gomoku-backend/internal/domain/account"
+	domainGame "gomoku-backend/internal/domain/game"
+	"gomoku-backend/internal/infrastructure/password"
+	"gomoku-backend/internal/interface/account/profile"
 	gameapi "gomoku-backend/internal/interface/game"
 	"net/http"
 
@@ -26,6 +30,8 @@ func NewHandler(
 	sessions *auth.Manager,
 	rankingRepository ranking.Repository,
 	origins []string,
+	profiles account.ProfileRepository,
+	results domainGame.ResultRepository,
 ) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleHealth)
@@ -38,7 +44,10 @@ func NewHandler(
 	mux.HandleFunc("/auth/me", sessions.Current)
 	mux.HandleFunc("/logout", sessions.Logout)
 	mux.Handle("/ranking", rankingapi.NewHandler(rankingRepository))
-	mux.Handle("/game/ws", middleware.Authentication(sessions, gameapi.NewHandler(origins)))
+	mux.Handle("/game/ws", middleware.Authentication(sessions, gameapi.NewHandler(origins, results)))
+	profileHandler := middleware.Authentication(sessions, profile.Handler{Repository: profiles, Passwords: password.NewPBKDF2(), Auth: sessions})
+	mux.Handle("/account", profileHandler)
+	mux.Handle("/account/settings", profileHandler)
 	return middleware.CSRF(origins, mux)
 }
 
