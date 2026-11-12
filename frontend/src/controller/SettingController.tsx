@@ -1,4 +1,6 @@
-import { useRef, useState, type SubmitEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { getSettings, saveSettings } from '../api/account'
+import { logout } from '../api/authentication'
 import SettingForm from '../ui/SettingForm'
 import {
   applyBgmVolume,
@@ -6,7 +8,6 @@ import {
   getVolumes,
   playSe,
   saveVolumes,
-  startBgm,
 } from '../audio/audioManager.ts'
 
 function SettingController() {
@@ -14,28 +15,43 @@ function SettingController() {
   const [seVolume, setSeVolume] = useState(() => getVolumes().seVolume)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const previewTimer = useRef<number | undefined>(undefined)
+  const lastPreviewTime = useRef(-Infinity)
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    getSettings(controller.signal).then(settings => {
+      setBgmVolume(settings.bgmVolume); setSeVolume(settings.seVolume)
+      applyBgmVolume(settings.bgmVolume); applySeVolume(settings.seVolume); saveVolumes()
+      setLoaded(true)
+    }).catch(error => {
+      if (!controller.signal.aborted) setErrorMessage(error instanceof Error ? error.message : '設定を取得できませんでした。')
+    })
+    return () => controller.abort()
+  }, [])
 
   function handleBgmVolumeChange(value: number) {
     setBgmVolume(value)
     applyBgmVolume(value)
-    startBgm() // スライダー操作は「ユーザー操作」なので、ここでBGMを鳴らせる
   }
 
   function handleSeVolumeChange(value: number) {
     setSeVolume(value)
     applySeVolume(value)
-    // 動かし終わったあたりで、試しに効果音を1回鳴らす
-    window.clearTimeout(previewTimer.current)
-    previewTimer.current = window.setTimeout(playSe, 200)
+    // Preview throughout dragging, with a short interval to avoid overlapping clicks.
+    const now = performance.now()
+    if (now - lastPreviewTime.current >= 80 || value === 0 || value === 100) {
+      lastPreviewTime.current = now
+      playSe()
+    }
   }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!loaded || isSubmitting) return
     setIsSubmitting(true)
     setErrorMessage('')
     try {
-      // TODO: サーバーに保存するなら ../api の関数に置き換える
+      await saveSettings({ bgmVolume, seVolume })
       saveVolumes()
       window.location.assign('/home') // 保存できたら、ホームへ戻る
     } catch (error) {
@@ -45,19 +61,12 @@ function SettingController() {
     }
   }
 
-  function handleAccount() {
-    // TODO: アカウント画面ができたら移動先を設定する(今は /account が存在しない)
-    window.location.assign('/account')
-  }
-
   async function handleLogout() {
     try {
-      await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'gomoku-web' },
-      })
-    } finally {
+      await logout()
       window.location.assign('/login')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'ログアウトできませんでした。')
     }
   }
 
@@ -71,10 +80,10 @@ function SettingController() {
       seVolume={seVolume}
       onBgmVolumeChange={handleBgmVolumeChange}
       onSeVolumeChange={handleSeVolumeChange}
-      onAccount={handleAccount}
       onLogout={handleLogout}
       onBack={handleBack}
       onSubmit={handleSubmit}
+      isLoading={!loaded}
       isSubmitting={isSubmitting}
       errorMessage={errorMessage}
     />

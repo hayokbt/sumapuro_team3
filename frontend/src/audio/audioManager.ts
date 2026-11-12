@@ -1,7 +1,5 @@
 const STORAGE_KEY = 'settings'
-
-// public/audio/ に置いたファイル名に合わせる
-const BGM_SRC = '/audio/bgm.mp3'
+const DEFAULT_VOLUME = 50
 const SE_SRC = '/audio/se_click.mp3'
 
 export type Volumes = {
@@ -9,30 +7,34 @@ export type Volumes = {
   seVolume: number
 }
 
+function storedVolume(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : DEFAULT_VOLUME
+}
+
 function loadVolumes(): Volumes {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     return {
-      bgmVolume: typeof saved.bgmVolume === 'number' ? saved.bgmVolume : 30,
-      seVolume: typeof saved.seVolume === 'number' ? saved.seVolume : 60,
+      bgmVolume: storedVolume(saved.bgmVolume),
+      seVolume: storedVolume(saved.seVolume),
     }
   } catch {
-    return { bgmVolume: 30, seVolume: 60 }
+    return { bgmVolume: DEFAULT_VOLUME, seVolume: DEFAULT_VOLUME }
   }
 }
 
-// 画面表示中の音量(スライダーを動かすとここが変わる。保存するまでは次の読み込みで元に戻る)
 const volumes: Volumes = loadVolumes()
+let se: HTMLAudioElement | null = null
 
-let bgm: HTMLAudioElement | null = null
-
-function getBgm(): HTMLAudioElement {
-  if (!bgm) {
-    bgm = new Audio(BGM_SRC)
-    bgm.loop = true
-    bgm.volume = volumes.bgmVolume / 100
+function getSe(): HTMLAudioElement {
+  if (!se) {
+    se = new Audio(SE_SRC)
+    se.preload = 'auto'
+    se.volume = volumes.seVolume / 100
   }
-  return bgm
+  return se
 }
 
 export function getVolumes(): Volumes {
@@ -43,30 +45,42 @@ export function saveVolumes() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(volumes))
 }
 
-// BGM を流す。ブラウザが自動再生をブロックしたら、最初のクリックかキー入力で再生する
-export function startBgm() {
-  const audio = getBgm()
-  audio.play().catch(() => {
-    const retry = () => {
-      audio.play().catch(() => {})
-    }
-    window.addEventListener('pointerdown', retry, { once: true })
-    window.addEventListener('keydown', retry, { once: true })
-  })
-}
-
 export function applyBgmVolume(value: number) {
-  volumes.bgmVolume = value
-  if (bgm) bgm.volume = value / 100
+  volumes.bgmVolume = storedVolume(value)
 }
 
 export function applySeVolume(value: number) {
-  volumes.seVolume = value
+  volumes.seVolume = storedVolume(value)
+  if (se) se.volume = volumes.seVolume / 100
 }
 
-// 効果音を1回鳴らす
 export function playSe() {
-  const se = new Audio(SE_SRC)
-  se.volume = volumes.seVolume / 100
-  se.play().catch(() => {})
+  if (volumes.seVolume === 0) return
+  const audio = getSe()
+  audio.currentTime = 0
+  audio.volume = volumes.seVolume / 100
+  audio.play().catch(() => {})
+}
+
+export function installButtonSounds(): () => void {
+  getSe().load()
+  const isButton = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false
+    const button = target.closest('button, a[href], [role="button"], input[type="submit"], input[type="button"], input[type="reset"]')
+    return !!button && !button.matches(':disabled') && !button.closest('[aria-disabled="true"]')
+  }
+  // Play on press so navigation does not cut off the start of the sound.
+  const pointerDown = (event: PointerEvent) => {
+    if (event.button === 0 && event.isPrimary && isButton(event.target)) playSe()
+  }
+  const click = (event: MouseEvent) => {
+    // Keyboard and assistive-technology clicks have no pointerdown event.
+    if (event.detail === 0 && isButton(event.target)) playSe()
+  }
+  window.addEventListener('pointerdown', pointerDown, true)
+  window.addEventListener('click', click, true)
+  return () => {
+    window.removeEventListener('pointerdown', pointerDown, true)
+    window.removeEventListener('click', click, true)
+  }
 }

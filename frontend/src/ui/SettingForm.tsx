@@ -5,10 +5,10 @@ type SettingFormProps = {
   seVolume: number
   onBgmVolumeChange: (value: number) => void
   onSeVolumeChange: (value: number) => void
-  onAccount: () => void
   onLogout: () => void
   onBack: () => void
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
+  isLoading: boolean
   isSubmitting: boolean
   errorMessage: string
 }
@@ -18,10 +18,10 @@ function SettingForm({
   seVolume,
   onBgmVolumeChange,
   onSeVolumeChange,
-  onAccount,
   onLogout,
   onBack,
   onSubmit,
+  isLoading,
   isSubmitting,
   errorMessage,
 }: SettingFormProps) {
@@ -30,9 +30,6 @@ function SettingForm({
       <div className="form-container settings-form">
         <form onSubmit={onSubmit}>
           <div className="settings-row settings-top">
-            <button type="button" onClick={onAccount} disabled={isSubmitting}>
-              アカウント
-            </button>
             <button type="button" onClick={onLogout} disabled={isSubmitting}>
               ログアウト
             </button>
@@ -50,7 +47,7 @@ function SettingForm({
               max={100}
               value={bgmVolume}
               onChange={(event) => onBgmVolumeChange(Number(event.target.value))}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
             />
           </div>
 
@@ -66,7 +63,7 @@ function SettingForm({
               max={100}
               value={seVolume}
               onChange={(event) => onSeVolumeChange(Number(event.target.value))}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
             />
           </div>
 
@@ -82,8 +79,8 @@ function SettingForm({
             >
               ↩
             </button>
-            <button type="submit" className="settings-save" disabled={isSubmitting}>
-              {isSubmitting ? '保存中…' : '保存'}
+            <button type="submit" className="settings-save" disabled={isSubmitting || isLoading}>
+              {isLoading ? '読み込み中…' : isSubmitting ? '保存中…' : '保存'}
             </button>
           </div>
         </form>

@@ -79,7 +79,31 @@ func initializeSchema(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
-	return nil
+	for _, column := range []struct{ name, definition string }{
+		{"bgm_volume", "TINYINT UNSIGNED NOT NULL DEFAULT 50"},
+		{"se_volume", "TINYINT UNSIGNED NOT NULL DEFAULT 50"},
+	} {
+		if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='users' AND column_name=?", column.name).Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 {
+			if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN "+column.name+" "+column.definition); err != nil {
+				return err
+			}
+		} else {
+			var defaultValue string
+			if err := db.QueryRowContext(ctx, "SELECT column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='users' AND column_name=?", column.name).Scan(&defaultValue); err != nil {
+				return err
+			}
+			if defaultValue != "50" {
+				if _, err := db.ExecContext(ctx, "ALTER TABLE users ALTER COLUMN "+column.name+" SET DEFAULT 50"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	_, err = db.ExecContext(ctx, "INSERT INTO user_scores (user_id) SELECT id FROM users WHERE id NOT IN (SELECT user_id FROM user_scores)")
+	return err
 }
 
 func envOrDefault(key, fallback string) string {
