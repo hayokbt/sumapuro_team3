@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'settings'
 const DEFAULT_VOLUME = 50
 const SE_SRC = '/audio/se_click.mp3'
+const BGM_SRC = '/audio/bgm.mp3'
+const BGM_POSITION_KEY = 'bgmPosition'
 
 export type Volumes = {
   bgmVolume: number
@@ -27,6 +29,42 @@ function loadVolumes(): Volumes {
 
 const volumes: Volumes = loadVolumes()
 let se: HTMLAudioElement | null = null
+let bgm: HTMLAudioElement | null = null
+
+function getBgm(): HTMLAudioElement {
+  if (!bgm) {
+    const audio = new Audio(BGM_SRC)
+    audio.preload = 'auto'
+    audio.loop = true
+    audio.volume = volumes.bgmVolume / 100
+    audio.addEventListener('loadedmetadata', () => {
+      try {
+        const position = Number(sessionStorage.getItem(BGM_POSITION_KEY))
+        if (Number.isFinite(position) && position > 0 && audio.duration > 0) {
+          audio.currentTime = position % audio.duration
+        }
+      } catch { /* Playback still works when browser storage is unavailable. */ }
+    }, { once: true })
+    bgm = audio
+  }
+  return bgm
+}
+
+function playBgm() {
+  if (volumes.bgmVolume === 0) return
+  const audio = getBgm()
+  if (!audio.paused) return
+  // Autoplay may be blocked until a user gesture. Later gestures retry it.
+  audio.play().catch(() => {})
+}
+
+function pauseBgm() {
+  if (!bgm) return
+  try {
+    if (bgm.readyState >= 1) sessionStorage.setItem(BGM_POSITION_KEY, String(bgm.currentTime))
+  } catch { /* Storage is optional. */ }
+  bgm.pause()
+}
 
 function getSe(): HTMLAudioElement {
   if (!se) {
@@ -47,6 +85,11 @@ export function saveVolumes() {
 
 export function applyBgmVolume(value: number) {
   volumes.bgmVolume = storedVolume(value)
+  if (bgm) {
+    bgm.volume = volumes.bgmVolume / 100
+    if (volumes.bgmVolume === 0) pauseBgm()
+    else playBgm()
+  }
 }
 
 export function applySeVolume(value: number) {
@@ -62,8 +105,10 @@ export function playSe() {
   audio.play().catch(() => {})
 }
 
-export function installButtonSounds(): () => void {
+export function installAudio(): () => void {
   getSe().load()
+  getBgm()
+  playBgm()
   const isButton = (target: EventTarget | null) => {
     if (!(target instanceof Element)) return false
     const button = target.closest('button, a[href], [role="button"], input[type="submit"], input[type="button"], input[type="reset"]')
@@ -71,16 +116,25 @@ export function installButtonSounds(): () => void {
   }
   // Play on press so navigation does not cut off the start of the sound.
   const pointerDown = (event: PointerEvent) => {
+    if (event.button === 0 && event.isPrimary) playBgm()
     if (event.button === 0 && event.isPrimary && isButton(event.target)) playSe()
   }
   const click = (event: MouseEvent) => {
+    playBgm()
     // Keyboard and assistive-technology clicks have no pointerdown event.
     if (event.detail === 0 && isButton(event.target)) playSe()
   }
   window.addEventListener('pointerdown', pointerDown, true)
   window.addEventListener('click', click, true)
+  window.addEventListener('keydown', playBgm, true)
+  window.addEventListener('pagehide', pauseBgm)
+  window.addEventListener('pageshow', playBgm)
   return () => {
     window.removeEventListener('pointerdown', pointerDown, true)
     window.removeEventListener('click', click, true)
+    window.removeEventListener('keydown', playBgm, true)
+    window.removeEventListener('pagehide', pauseBgm)
+    window.removeEventListener('pageshow', playBgm)
+    pauseBgm()
   }
 }
