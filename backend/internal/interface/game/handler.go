@@ -21,7 +21,14 @@ type client struct {
 	user  int64
 	color int
 	room  *room
+	left  bool
 }
+
+const (
+	closeDuplicate = 4409
+	closeReplaced  = 4410
+)
+
 type room struct {
 	id      string
 	users   [2]int64
@@ -86,15 +93,26 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.mu.Lock()
-	if h.clients[id] != nil {
-		h.mu.Unlock()
-		http.Error(w, "既に対戦画面が開いています。", 409)
-		return
-	}
+	previous := h.clients[id]
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		h.mu.Unlock()
 		return
+	}
+	if previous != nil && r.URL.Query().Get("replace") != "1" {
+		h.mu.Unlock()
+		// HTTP handshake errors are hidden from browser JavaScript. Use a
+		// dedicated close code so the UI can explain shared login cookies.
+		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeDuplicate, "account_already_connected"), time.Now().Add(time.Second))
+		conn.Close()
+		return
+	}
+	// An explicit retry takes over a stale connection immediately, without
+	// waiting for its read deadline. Failed upgrades must leave it untouched.
+	if previous != nil {
+		_ = previous.conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeReplaced, "connection_replaced"), time.Now().Add(time.Second))
+		h.leave(previous)
+		previous.conn.Close()
 	}
 	c := &client{conn: conn, send: make(chan any, 32), user: id}
 	h.clients[id] = c
@@ -139,6 +157,10 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.mu.Lock()
+		if c.left {
+			h.mu.Unlock()
+			return
+		}
 		room := c.room
 		if room == nil {
 			h.sendWaiting(c)
@@ -204,7 +226,13 @@ func (h *Hub) broadcast(r *room) {
 	}
 }
 func (h *Hub) leave(c *client) {
-	delete(h.clients, c.user)
+	if c.left {
+		return
+	}
+	c.left = true
+	if h.clients[c.user] == c {
+		delete(h.clients, c.user)
+	}
 	for i, p := range h.waiting {
 		if p == c {
 			h.waiting = append(h.waiting[:i], h.waiting[i+1:]...)

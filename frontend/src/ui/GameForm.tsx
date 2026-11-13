@@ -25,6 +25,9 @@ function GameForm() {
   const [isWaiting, setIsWaiting] = useState(false)
   const [selectedCell, setSelectedCell] = useState<number | null>(null)
   const [cpuColor, setCPUColor] = useState<'black' | 'white' | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const [replaceConnection, setReplaceConnection] = useState(false)
+  const [duplicate, setDuplicate] = useState(false)
   const choosingColor = mode === 'cpu' && cpuColor === null
 
   useEffect(() => {
@@ -41,7 +44,7 @@ function GameForm() {
         if (cancelled) return
         setStatus('接続中…')
         const colorQuery = mode === 'cpu' ? `&color=${cpuColor}` : ''
-        connection = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/game/ws?mode=${mode}${colorQuery}`)
+        connection = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/game/ws?mode=${mode}${colorQuery}${replaceConnection ? '&replace=1' : ''}`)
         socket.current = connection
         connection.onmessage = (event) => {
           if (cancelled) return
@@ -60,12 +63,19 @@ function GameForm() {
           }
           if (message.type === 'error') setError(message.message)
         }
-        connection.onclose = () => {
+        connection.onclose = (event) => {
           if (cancelled) return
           setClosed(true)
           setIsWaiting(false)
           setPending(false)
-          if (!finished.current) setError('接続が切れました。再接続するか、ログイン状態・他の対戦タブを確認してください。対局中の切断は負けになります。')
+          if (event.code === 4409) {
+            setDuplicate(true)
+            setError('同じアカウントが別の対戦画面で接続しています。同じChromeプロファイルの通常ウィンドウ同士ではログイン情報が共有されます。2人で対戦する場合は、片方をシークレットウィンドウや別のブラウザで開き、別々のアカウントでログインしてください。')
+          } else if (event.code === 4410) {
+            setError('同じアカウントの別の画面に接続が切り替わりました。2人で対戦する場合は、片方をシークレットウィンドウや別のブラウザで開いてください。')
+          } else if (!finished.current) {
+            setError('接続が切れました。再接続するか、ログイン状態を確認してください。対局中の切断は負けになります。')
+          }
         }
         connection.onerror = () => {
           if (!cancelled) setError('対戦サーバーとの通信に失敗しました。')
@@ -76,7 +86,21 @@ function GameForm() {
     }
     void connect()
     return () => { cancelled = true; abort.abort(); connection?.close(); socket.current = null }
-  }, [mode, cpuColor])
+  }, [mode, cpuColor, attempt, replaceConnection])
+
+  function restart(replace = false) {
+    finished.current = false
+    setGame(null)
+    setError('')
+    setClosed(false)
+    setPending(false)
+    setIsWaiting(false)
+    setSelectedCell(null)
+    setStatus('ログイン状態を確認中…')
+    setDuplicate(false)
+    setReplaceConnection(replace)
+    setAttempt((value) => value + 1)
+  }
 
   function send(type: 'move' | 'resign', index?: number) {
     if (socket.current?.readyState !== WebSocket.OPEN || pending) return
@@ -177,7 +201,11 @@ function GameForm() {
         )}
         <div className="game-controls">
           {game && !game.finished && !closed && <button className="home-button home-button-secondary" disabled={pending} onClick={() => send('resign')}>投了する</button>}
-          {(game?.finished || closed) && <a className="home-button home-button-primary" href={`/game?mode=${mode}`}>{closed && !game?.finished ? '新しい対局を始める' : mode === 'online' ? '次の相手を探す' : 'もう一度CPUと対戦'}</a>}
+          {(game?.finished || closed) && <button type="button" className="home-button home-button-primary" onClick={() => restart()}>{closed && !game?.finished ? '新しい対局を始める' : mode === 'online' ? '次の相手を探す' : 'もう一度CPUと対戦'}</button>}
+          {closed && duplicate && <>
+            <p>古い接続が残っている場合は、下のボタンで終了できます。別の画面で対局中の場合、その対局は切断負けになります。</p>
+            <button type="button" className="home-button home-button-secondary" onClick={() => restart(true)}>他の対戦画面の接続を終了して参加</button>
+          </>}
           {game?.finished && <a className="home-button home-button-secondary" href="/home">ホームで対戦方式を選ぶ</a>}
           {!game && !closed && !isWaiting && <a className="home-button home-button-secondary" href="/home">ホームへ戻る</a>}
           {closed && <a href="/login">ログイン画面へ</a>}
