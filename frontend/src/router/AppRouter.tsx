@@ -8,7 +8,7 @@ import LoginController from '../controller/LoginController'
 import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
-import { installButtonSounds } from '../audio/audioManager'
+import { installAudio } from '../audio/audioManager'
 
 function renderPage(pathname: string) {
   switch (pathname) {
@@ -40,7 +40,7 @@ function AppRouter() {
   const pathname = window.location.pathname
 
   useEffect(() => {
-    return installButtonSounds()
+    return installAudio()
   }, [])
 
   // 対局中のページ遷移で接続を切らないよう、設定への入口はホームに限定する。
