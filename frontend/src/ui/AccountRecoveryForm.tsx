@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import type { SubmitEvent } from 'react'
 
 type AccountRecoveryFormProps = {
@@ -72,7 +73,7 @@ function AccountRecoveryForm({
             メールアドレスを変更
           </button>
         )}
-        <button className="account-flow-back" type="button" onClick={() => window.location.assign('/login')}>
+        <button className="account-flow-back" type="button" onClick={() => navigate('/login')}>
           戻る
         </button>
       </form>

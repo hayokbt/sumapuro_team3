@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { getSettings, saveSettings } from '../api/account'
 import { logout } from '../api/authentication'
@@ -53,7 +54,7 @@ function SettingController() {
     try {
       await saveSettings({ bgmVolume, seVolume })
       saveVolumes()
-      window.location.assign('/home') // 保存できたら、ホームへ戻る
+      navigate('/home') // 保存できたら、ホームへ戻る
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '設定を保存できませんでした。')
     } finally {
@@ -64,14 +65,14 @@ function SettingController() {
   async function handleLogout() {
     try {
       await logout()
-      window.location.assign('/login')
+      navigate('/login')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'ログアウトできませんでした。')
     }
   }
 
   function handleBack() {
-    window.location.assign('/home')
+    navigate('/home')
   }
 
   return (

@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import {
   accountRecoveryStorageKey,
@@ -17,7 +18,7 @@ function AccountResetController() {
 
   useEffect(() => {
     if (!recoveryState) {
-      window.location.replace('/account/recovery')
+      navigate('/account/recovery', { replace: true })
     }
   }, [recoveryState])
 
@@ -45,7 +46,7 @@ function AccountResetController() {
       }
       setIsCompleted(true)
       setStatusMessage(message)
-      window.location.replace('/login')
+      navigate('/login', { replace: true })
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'アカウント情報を更新できませんでした。')
     } finally {

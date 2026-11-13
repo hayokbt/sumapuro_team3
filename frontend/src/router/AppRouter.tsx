@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect, useSyncExternalStore } from 'react'
 import AccountController from '../controller/AccountController'
 import AccountCreateController from '../controller/AccountCreateController'
 import AccountRecoveryController from '../controller/AccountRecoveryController'
@@ -9,6 +9,7 @@ import RankingController from '../controller/RankingController'
 import GameForm from '../ui/GameForm'
 import SettingController from '../controller/SettingController'
 import { installAudio } from '../audio/audioManager'
+import { getRoute, installNavigation, subscribeToNavigation } from './navigation'
 
 function renderPage(pathname: string) {
   switch (pathname) {
@@ -37,7 +38,10 @@ function renderPage(pathname: string) {
 }
 
 function AppRouter() {
-  const pathname = window.location.pathname
+  const route = useSyncExternalStore(subscribeToNavigation, getRoute)
+  const pathname = route.split('?')[0]
+
+  useEffect(() => installNavigation(), [])
 
   useEffect(() => {
     return installAudio()
@@ -48,7 +52,7 @@ function AppRouter() {
 
   return (
     <>
-      {renderPage(pathname)}
+      <Fragment key={route}>{renderPage(pathname)}</Fragment>
       {showSettingsButton && (
         <a href="/settings" className="settings-link" aria-label="設定">
           ⚙

@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 type AccountCreateFormProps = {
   email: string
   accountName: string
@@ -115,7 +116,7 @@ function AccountCreateForm({
 
         {statusMessage && <p role="status">{statusMessage}</p>}
         {errorMessage && <p role="alert">{errorMessage}</p>}
-        <button className="account-flow-back" type="button" onClick={() => window.location.assign('/login')}>
+        <button className="account-flow-back" type="button" onClick={() => navigate('/login')}>
           戻る
         </button>
       </div>

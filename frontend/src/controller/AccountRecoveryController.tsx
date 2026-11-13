@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import { useState, type SubmitEvent } from 'react'
 import { requestAccountRecoveryCode, verifyAccountRecoveryCode, accountRecoveryStorageKey } from '../api/accountRecovery'
 import AccountRecoveryForm from '../ui/AccountRecoveryForm'
@@ -30,7 +31,7 @@ function AccountRecoveryController() {
         setErrorMessage('復旧情報を保存できませんでした。ブラウザーの設定を確認して再度お試しください。')
         return
       }
-      window.location.assign('/account/reset')
+      navigate('/account/reset')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'アカウント復旧を処理できませんでした。')
     } finally {

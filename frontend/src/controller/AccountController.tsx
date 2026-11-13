@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { getProfile, updateProfile, type Profile } from '../api/account'
 
@@ -20,7 +21,7 @@ export default function AccountController() {
   event.preventDefault(); setBusy(true); setError(''); setMessage('')
   try {
    await updateProfile({ accountName, currentPassword, password })
-   if (password) { window.location.assign('/login'); return }
+   if (password) { navigate('/login'); return }
    setCurrentPassword(''); setMessage('アカウント名を更新しました。')
   } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。') }
   finally { setBusy(false) }

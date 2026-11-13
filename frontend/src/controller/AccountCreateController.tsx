@@ -1,3 +1,4 @@
+import { navigate } from '../router/navigation'
 import { useState, type SubmitEvent } from 'react'
 import { requestAccountVerification, verifyAccountEmail } from '../api/accountRegistration'
 import AccountCreateForm from '../ui/AccountCreateForm'
@@ -39,7 +40,7 @@ function AccountCreateController() {
       const message = await verifyAccountEmail(email, verificationCode)
       setAccountCreated(true)
       setStatusMessage(message)
-      window.location.replace('/login')
+      navigate('/login', { replace: true })
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '確認コードを検証できませんでした。')
     } finally {
