@@ -1,10 +1,12 @@
 package game
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,6 +18,77 @@ import (
 	"gomoku-backend/internal/interface/account/auth"
 	"gomoku-backend/internal/interface/httpapi/middleware"
 )
+
+func TestMatchingThroughFrontendProxy(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("Node.js is required for the frontend proxy integration test")
+	}
+	h := NewHandler([]string{"http://localhost:5173"})
+	backend := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
+	defer backend.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	proxy := exec.CommandContext(ctx, "node", "--input-type=module", "-e", `
+import { createServer } from 'node:http';
+import { proxyWebSocket } from '../../../../frontend/server/websocket-proxy.mjs';
+const server = createServer();
+server.on('upgrade', (req, socket, head) => proxyWebSocket(req, socket, head, process.argv[1]));
+server.listen(0, '127.0.0.1', () => console.log('http://127.0.0.1:' + server.address().port));
+`, backend.URL)
+	stdout, err := proxy.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := proxy.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cancel(); _ = proxy.Wait() })
+	scanner := bufio.NewScanner(stdout)
+	if !scanner.Scan() {
+		t.Fatal("proxy did not start")
+	}
+	proxyURL := scanner.Text()
+	dial := func(id string) *websocket.Conn {
+		t.Helper()
+		c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(proxyURL, "http")+"/api/game/ws?mode=online", http.Header{"Origin": {"http://localhost:5173"}, "Cookie": {"gomoku_auth=" + id}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { c.Close() })
+		return c
+	}
+	a := dial("1")
+	if read(t, a).Type != "waiting" {
+		t.Fatal("first player did not wait")
+	}
+	// Wait past the proxy's upgrade timeout before joining the second player.
+	time.Sleep(11 * time.Second)
+	// Two Chrome windows sharing a login cookie must get a useful error,
+	// without disconnecting the player already in the queue.
+	duplicate := dial("1")
+	assertCloseCode(t, duplicate, closeDuplicate)
+	if err := a.WriteJSON(map[string]string{"type": "move"}); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, a).Type != "waiting" {
+		t.Fatal("duplicate connection evicted waiting player")
+	}
+	b := dial("2")
+	x, y := read(t, a), read(t, b)
+	if x.Type != "state" || y.Type != "state" || x.Color+y.Color != 3 {
+		t.Fatal("matching failed through frontend proxy")
+	}
+	black := a
+	if x.Color == 2 {
+		black = b
+	}
+	if err := black.WriteJSON(map[string]any{"type": "move", "index": 0}); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, a).Board[0] != 1 || read(t, b).Board[0] != 1 {
+		t.Fatal("move was not synchronized")
+	}
+}
 
 type sessions struct{}
 
@@ -37,6 +110,15 @@ func read(t *testing.T, c *websocket.Conn) state {
 	}
 	return s
 }
+
+func assertCloseCode(t *testing.T, c *websocket.Conn, code int) {
+	t.Helper()
+	_ = c.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err := c.ReadMessage()
+	if !websocket.IsCloseError(err, code) {
+		t.Fatalf("expected close code %d, got %v", code, err)
+	}
+}
 func TestMatchingMovesAndDisconnect(t *testing.T) {
 	h := NewHandler([]string{"http://game.test"})
 	s := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
@@ -56,10 +138,12 @@ func TestMatchingMovesAndDisconnect(t *testing.T) {
 	if read(t, c1).Type != "waiting" {
 		t.Fatal("not waiting")
 	}
-	_, response, err = dial(1, "online", "http://game.test")
-	if err == nil || response.StatusCode != 409 {
-		t.Fatal("duplicate user accepted")
+	duplicate, _, err := dial(1, "online", "http://game.test")
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer duplicate.Close()
+	assertCloseCode(t, duplicate, closeDuplicate)
 	c2, _, err := dial(2, "online", "http://game.test")
 	if err != nil {
 		t.Fatal(err)
@@ -334,5 +418,77 @@ func TestResultsRecordedOnceIncludingDisconnectedPlayer(t *testing.T) {
 			default:
 			}
 		})
+	}
+}
+
+// A network interruption can leave the previous socket registered until its
+// heartbeat expires. Explicit retries must work even while that socket is alive.
+func TestExplicitRetryReplacesOldConnection(t *testing.T) {
+	h := NewHandler([]string{"http://game.test"})
+	s := httptest.NewServer(middleware.Authentication(&auth.Manager{Sessions: sessions{}}, h))
+	defer s.Close()
+	dial := func(query, origin string) (*websocket.Conn, *http.Response, error) {
+		return websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(s.URL, "http")+"?mode=online"+query, http.Header{"Origin": {origin}, "Cookie": {"gomoku_auth=1"}})
+	}
+	old, _, err := dial("", "http://game.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer old.Close()
+	read(t, old)
+	// A rejected handshake cannot evict the existing player.
+	_, response, err := dial("&replace=1", "http://evil.test")
+	if err == nil || response.StatusCode != 403 {
+		t.Fatal("invalid origin accepted")
+	}
+	if err := old.WriteJSON(map[string]string{"type": "move"}); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, old).Type != "waiting" {
+		t.Fatal("failed upgrade evicted player")
+	}
+	next, _, err := dial("&replace=1", "http://game.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Close()
+	if read(t, next).Type != "waiting" {
+		t.Fatal("retry did not join queue")
+	}
+	assertCloseCode(t, old, closeReplaced)
+	// Exercise the old reader's deferred cleanup after replacement, deterministically.
+	h.mu.Lock()
+	current := h.clients[1]
+	if current == nil || len(h.waiting) != 1 || h.waiting[0] != current {
+		h.mu.Unlock()
+		t.Fatal("replacement removed from registry or queue")
+	}
+	h.mu.Unlock()
+	duplicate, _, err := dial("", "http://game.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer duplicate.Close()
+	assertCloseCode(t, duplicate, closeDuplicate)
+	if err := next.WriteJSON(map[string]string{"type": "move"}); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, next).Type != "waiting" {
+		t.Fatal("replacement no longer usable")
+	}
+}
+
+func TestLeaveOldClientDoesNotRemoveReplacement(t *testing.T) {
+	h := NewHandler(nil)
+	old := &client{user: 1, send: make(chan any, 1)}
+	next := &client{user: 1, send: make(chan any, 1)}
+	h.clients[1] = old
+	h.waiting = []*client{old}
+	h.leave(old)
+	h.clients[1] = next
+	h.waiting = []*client{next}
+	h.leave(old)
+	if h.clients[1] != next || len(h.waiting) != 1 || h.waiting[0] != next {
+		t.Fatal("deferred cleanup removed replacement")
 	}
 }
